@@ -48,7 +48,7 @@ class FixSTMD : public Fix {
   int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
   double initf, TL, TH, Emin, Emax, ST;
   char dir_output[256]; // optional argument for output directory
-  int iworld,nworlds;          // world info
+  int iworld,nworlds; // world info
   // other variables initialized in stmd.f::stmdcntrl()
   int MODI;
 

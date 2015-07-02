@@ -145,6 +145,12 @@ int FixSTMD::setmask()
 
 void FixSTMD::init()
 {
+  // Get number of replicas (worlds) and walker number
+  nworlds = universe->nworlds;
+  iworld = universe->iworld;
+  char walker[256]; // At most 127 replicas, should be enough.
+  sprintf(walker,"%i",iworld);
+
   // These are all other variables initialized in stmd.f::stmdcntrl()
   MODI    = 0; // Value of MODI never changes and only used in one spot
   // Initialization from stmd.f::stmdinitrans()
@@ -153,46 +159,60 @@ void FixSTMD::init()
     
     if(!fp_wtnm) {
       strcpy(filename,dir_output);
-      strcat(filename,"/WT.d");
+      strcat(filename,"/WT.");
+      strcat(filename,walker);
+      strcat(filename,".d");
       strcpy(filename_wtnm,filename);
       fp_wtnm  = fopen(filename,"w");
     }
 
     if(!fp_whnm) {
       strcpy(filename,dir_output);
-      strcat(filename,"/WH.d");
+      strcat(filename,"/WH.");
+      strcat(filename,walker);
+      strcat(filename,".d");
       strcpy(filename_whnm,filename);
       fp_whnm  = fopen(filename,"w");
     }
 
     if(!fp_whpnm) {
       strcpy(filename,dir_output);
-      strcat(filename,"/WHP.d");
+      strcat(filename,"/WHP.");
+      strcat(filename,walker);
+      strcat(filename,".d");
       strcpy(filename_whpnm,filename);
       fp_whpnm = fopen(filename,"w");
     }
 
     if(!fp_wenm) {
       strcpy(filename,dir_output);
-      strcat(filename,"/WE.d");
+      strcat(filename,"/WE.");
+      strcat(filename,walker);
+      strcat(filename,".d");
       strcpy(filename_wenm,filename);
       fp_wenm  = fopen(filename,"w");
     }
     if( (!fp_orest) && (!OREST) ) {
         strcpy(filename,dir_output);
-        strcat(filename,"/oREST.d");
+        strcat(filename,"/oREST.");
+        strcat(filename,walker);
+        strcat(filename,".d");
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"w");
     }
     if( (!fp_orest) && (OREST) ) {
         strcpy(filename,dir_output);
-        strcat(filename,"/oREST.d");
+        strcat(filename,"/oREST.");
+        strcat(filename,walker);
+        strcat(filename,".d");
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"r+");
     }
     if( (!fp_irest) && (OREST) ) {
         strcpy(filename,dir_output);
-        strcat(filename,"/iREST.d");
+        strcat(filename,"/iREST.");
+        strcat(filename,walker);
+        strcat(filename,".d");
         strcpy(filename_irest,filename);
         fp_irest  = fopen(filename,"w");
     }
@@ -323,6 +343,7 @@ void FixSTMD::init()
 
     pe_compute_id = modify->ncompute - 1;
   }
+  
 
   if(OREST) { // Read oREST.d into variables
       if(comm->me == 0) {
@@ -332,7 +353,12 @@ void FixSTMD::init()
           memory->create(list,nsize,"stmd:list");
           //double list[nsize];
 
-          std::ifstream file("oREST.d");
+          char filename[256];
+          strcpy(filename,dir_output);
+          strcat(filename,"/oREST.");
+          strcat(filename,walker);
+          strcat(filename,".d");
+          std::ifstream file(filename);
           for(int i=0; i<nsize; i++) {
               file >> list[i];
           }
@@ -370,8 +396,12 @@ void FixSTMD::init()
     }
   }
 
+  if( (stmd_logfile) && (nworlds > 0) ) {
+    fprintf(logfile,"RESTMD: nReplica= %i  walker= %i\n",nworlds,iworld);
+    }
+
   if(stmd_logfile) {
-    fprintf(logfile,"STMD Check initial values");
+    fprintf(logfile,"STMD Check initial values\n",nworlds);
     fprintf(logfile,"STMD N= %i  bin= %i\n",N, bin); // diffE was included in stmd.f, but don't know what that is
 
     // fprintf(logfile,"STMD Elist= ");
