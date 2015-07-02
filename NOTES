@@ -5,7 +5,7 @@ Thu Jul  2 11:59:06 EDT 2015
 
 TO DO:
 [x] Make STMD restart
-[ ] Add universe variable to each *.d file created by fix_stmd.cpp
+{x] Add universe variable to each *.d file created by fix_stmd.cpp
 [ ] Add any necessary RESTMD restart information to oREST.d and iREST.d
 [ ] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp
 
