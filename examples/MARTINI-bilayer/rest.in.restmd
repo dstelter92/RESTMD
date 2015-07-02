@@ -7,7 +7,7 @@ variable w world 0 1  # Order of walkers from last output (log.lammps)
 
 # ------------------------------- Initialization Section --------------------
 
-read_restart    ${tlo}-${thi}.*.restart
+read_restart    restart/${tlo}-${thi}.*.restart
 include         "system.in.init"
 include         "system.in.settings"
 
@@ -26,5 +26,5 @@ dump_modify     id2 unwrap yes
 fix             fxnvt all nvt temp 323.0 323.0 3000.0
 fix	            fxstmd all stmd 100 1.1 ${tlo} ${thi} ${ulo} ${uhi} 64 1000 4000 323 1000 1
 
-restart         1000 ${tlo}-${thi}.*.restart
+restart         1000 restart/${tlo}-${thi}.*.restart
 restmd          1000 100 ${thi} fxstmd 0 12345 $w
