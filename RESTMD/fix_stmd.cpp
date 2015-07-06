@@ -348,7 +348,7 @@ void FixSTMD::init()
   if(OREST) { // Read oREST.d into variables
       if(comm->me == 0) {
           int k = 0;
-          int nsize = N + 19 + 1;
+          int nsize = N + 20 + 1;
           double *list;
           memory->create(list,nsize,"stmd:list");
           //double list[nsize];
@@ -391,6 +391,9 @@ void FixSTMD::init()
           T2 = list[k++];
           CTmin = list[k++];
           CTmax = list[k++];
+          int oldiworld = list[k++];
+
+          if(oldiworld != iworld) error->all(FLERR,"Walkers do not match restart file");
 
           memory->destroy(list);
     }
@@ -398,11 +401,14 @@ void FixSTMD::init()
 
   if( (stmd_logfile) && (nworlds > 0) ) {
     fprintf(logfile,"RESTMD: nReplica= %i  walker= %i\n",nworlds,iworld);
+    fprintf(screen,"RESTMD: nReplica= %i  walker= %i\n",nworlds,iworld);
     }
 
   if(stmd_logfile) {
-    fprintf(logfile,"STMD Check initial values\n",nworlds);
+    fprintf(logfile,"STMD Check initial values...\n");
     fprintf(logfile,"STMD N= %i  bin= %i\n",N, bin); // diffE was included in stmd.f, but don't know what that is
+    fprintf(screen,"STMD Check initial values...\n");
+    fprintf(screen,"STMD N= %i  bin= %i\n",N, bin); 
 
     // fprintf(logfile,"STMD Elist= ");
     // for(int i=0; i<N; i++) fprintf(logfile," %f",Elist[i]);
@@ -786,12 +792,14 @@ void FixSTMD::MAIN(int istep, double potE)
     fprintf(fp_wtnm,"\n\n");
   }
 
+  iworld = universe->iworld;
+
   // Write restart info to external file
   int r = istep % RSTFRQ;
   if( (r == 0) && (comm->me == 0) ) {
 
       int k = 0;
-      int nsize = N + 19;
+      int nsize = N + 20;
       double *list;
       memory->create(list,nsize,"stmd:list");
 
@@ -817,9 +825,17 @@ void FixSTMD::MAIN(int istep, double potE)
       list[k++] = T2;
       list[k++] = CTmin;
       list[k++] = CTmax;
+      list[k++] = iworld;
       
 
-      freopen("oREST.d","w",fp_orest);
+      char filename[256];
+      char walker[256]; // At most 127 replicas, should be enough.
+      sprintf(walker,"%i",iworld);
+      strcpy(filename,dir_output);
+      strcat(filename,"/oREST.");
+      strcat(filename,walker);
+      strcat(filename,".d");
+      freopen(filename,"w",fp_orest);
       //fprintf(fp_orest,"STMD Output Restart Information, Step: %i, nbins: %i\n",istep,N);
       for(int i=0; i<nsize; i++) fprintf(fp_orest,"%f\n",list[i]);
 
