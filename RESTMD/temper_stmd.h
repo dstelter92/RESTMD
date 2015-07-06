@@ -13,21 +13,21 @@
 
 #ifdef COMMAND_CLASS
 
-CommandStyle(temper,Temper)
+CommandStyle(restmd,TemperSTMD)
 
 #else
 
-#ifndef LMP_TEMPER_H
-#define LMP_TEMPER_H
+#ifndef LMP_TEMPER_STMD_H
+#define LMP_TEMPER_STMD_H
 
 #include "pointers.h"
 
 namespace LAMMPS_NS {
 
-class Temper : protected Pointers {
+class TemperSTMD : protected Pointers {
  public:
-  Temper(class LAMMPS *);
-  ~Temper();
+  TemperSTMD(class LAMMPS *);
+  ~TemperSTMD();
   void command(int, char **);
 
  private:
@@ -42,6 +42,7 @@ class Temper : protected Pointers {
   int seed_boltz;              // seed for Boltz factor comparison
   int whichfix;                // index of temperature fix to use
   int fixstyle;                // what kind of temperature fix is used
+  int binsize;
 
   int my_set_temp;             // which set temp I am simulating
   double *set_temp;            // static list of replica set temperatures

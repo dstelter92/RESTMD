@@ -18,7 +18,7 @@
 #include "math.h"
 #include "stdlib.h"
 #include "string.h"
-#include "temper.h"
+#include "temper_stmd.h"
 #include "universe.h"
 #include "domain.h"
 #include "atom.h"
@@ -38,15 +38,15 @@
 
 using namespace LAMMPS_NS;
 
-// #define TEMPER_DEBUG 1
+#define TEMPER_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
-Temper::Temper(LAMMPS *lmp) : Pointers(lmp) {}
+TemperSTMD::TemperSTMD(LAMMPS *lmp) : Pointers(lmp) {}
 
 /* ---------------------------------------------------------------------- */
 
-Temper::~Temper()
+TemperSTMD::~TemperSTMD()
 {
   MPI_Comm_free(&roots);
   if (ranswap) delete ranswap;
@@ -61,13 +61,13 @@ Temper::~Temper()
    perform tempering with inter-world swaps
 ------------------------------------------------------------------------- */
 
-void Temper::command(int narg, char **arg)
+void TemperSTMD::command(int narg, char **arg)
 {
   if (universe->nworlds == 1)
     error->all(FLERR,"Must have more than one processor partition to temper");
   if (domain->box_exist == 0)
     error->all(FLERR,"Temper command before simulation box is defined");
-  if (narg != 6 && narg != 7)
+  if (narg != 7 && narg != 8)
     error->universe_all(FLERR,"Illegal temper command");
 
   int nsteps = force->inumeric(FLERR,arg[0]);
@@ -79,11 +79,12 @@ void Temper::command(int narg, char **arg)
   if (whichfix == modify->nfix)
     error->universe_all(FLERR,"Tempering fix ID is not defined");
 
-  seed_swap = force->inumeric(FLERR,arg[4]);
-  seed_boltz = force->inumeric(FLERR,arg[5]);
+  binsize = atoi(arg[4]);
+  seed_swap = force->inumeric(FLERR,arg[5]);
+  seed_boltz = force->inumeric(FLERR,arg[6]);
 
   my_set_temp = universe->iworld;
-  if (narg == 7) my_set_temp = force->inumeric(FLERR,arg[6]);
+  if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
 
   // swap frequency must evenly divide total # of timesteps
 
@@ -169,7 +170,7 @@ void Temper::command(int narg, char **arg)
 
   // if restarting tempering, reset temp target of Fix to current my_set_temp
 
-  if (narg == 7) {
+  if (narg == 8) {
     double new_temp = set_temp[my_set_temp];
     modify->fix[whichfix]->reset_target(new_temp);
   }
@@ -266,6 +267,20 @@ void Temper::command(int narg, char **arg)
       else
         MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
 
+    /*
+    swap = 0;
+    if (partner != -1) {
+        if (me_universe > partner) // Send T(s) to partner
+            MPI_Send(&Y2,1,MPI_DOUBLE,partner,0,universe->uworld);
+        else // Receive T(s) from partner
+            MPI_Recv(&Y2_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+
+        // Integrate Y2 into S
+
+        if (me_universe < partner) {
+            boltz_factor = (S - S_partner)
+
+        */
 #ifdef TEMPER_DEBUG
       if (me_universe < partner)
         printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
@@ -323,7 +338,7 @@ void Temper::command(int narg, char **arg)
    scale kinetic energy via velocities a la Sugita
 ------------------------------------------------------------------------- */
 
-void Temper::scale_velocities(int t_partner, int t_me)
+void TemperSTMD::scale_velocities(int t_partner, int t_me)
 {
   double sfactor = sqrt(set_temp[t_partner]/set_temp[t_me]);
 
@@ -341,7 +356,7 @@ void Temper::scale_velocities(int t_partner, int t_me)
    proc 0 prints current tempering status
 ------------------------------------------------------------------------- */
 
-void Temper::print_status()
+void TemperSTMD::print_status()
 {
   if (universe->uscreen) {
     fprintf(universe->uscreen,BIGINT_FORMAT,update->ntimestep);
