@@ -42,7 +42,9 @@ class TemperSTMD : protected Pointers {
   int seed_boltz;              // seed for Boltz factor comparison
   int whichfix;                // index of temperature fix to use
   int fixstyle;                // what kind of temperature fix is used
-  int binsize;
+  int bin, Emin, Emax, BinMin, BinMax;
+  double * Y2, * Y2_partner;
+  //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating
   double *set_temp;            // static list of replica set temperatures

@@ -35,6 +35,7 @@
 #include "timer.h"
 #include "memory.h"
 #include "error.h"
+#include <fstream>
 
 using namespace LAMMPS_NS;
 
@@ -67,7 +68,7 @@ void TemperSTMD::command(int narg, char **arg)
     error->all(FLERR,"Must have more than one processor partition to temper");
   if (domain->box_exist == 0)
     error->all(FLERR,"Temper command before simulation box is defined");
-  if (narg != 7 && narg != 8)
+  if (narg != 9 && narg != 10)
     error->universe_all(FLERR,"Illegal temper command");
 
   int nsteps = force->inumeric(FLERR,arg[0]);
@@ -79,12 +80,19 @@ void TemperSTMD::command(int narg, char **arg)
   if (whichfix == modify->nfix)
     error->universe_all(FLERR,"Tempering fix ID is not defined");
 
-  binsize = atoi(arg[4]);
-  seed_swap = force->inumeric(FLERR,arg[5]);
-  seed_boltz = force->inumeric(FLERR,arg[6]);
+  bin = atoi(arg[4]);
+  Emin = atoi(arg[5]);
+  Emax = atoi(arg[6]);
+  seed_swap = force->inumeric(FLERR,arg[7]);
+  seed_boltz = force->inumeric(FLERR,arg[8]);
+
+  // calculate bin size
+  BinMin = round(Emin / bin);
+  BinMax = round(Emax / bin);
+  int Nbins = BinMax - BinMin + 1;
 
   my_set_temp = universe->iworld;
-  if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
+  if (narg == 10) my_set_temp = force->inumeric(FLERR,arg[9]);
 
   // swap frequency must evenly divide total # of timesteps
 
@@ -179,6 +187,9 @@ void TemperSTMD::command(int narg, char **arg)
 
   int i,which,partner,swap,partner_set_temp,partner_world;
   double pe,pe_partner,boltz_factor,new_temp;
+  //double Y2_partner;
+  int N,N_partner;
+  N = N_partner = Nbins;
   MPI_Status status;
 
   if (me_universe == 0 && universe->uscreen)
@@ -205,12 +216,41 @@ void TemperSTMD::command(int narg, char **arg)
   timer->init();
   timer->barrier_start(TIME_LOOP);
 
-  for (int iswap = 0; iswap < nswaps; iswap++) {
+  // restart file setup
+  char filename[256];
+  char walker[256]; // At most 127 replicas, should be enough.
+  sprintf(walker,"%i",iworld);
+  strcat(filename,"./oREST.");
+  strcat(filename,walker);
+  strcat(filename,".d");
+
+  for (int iswap = 0; iswap <= nswaps; iswap++) {
 
     // run for nevery timesteps
 
     update->integrate->run(nevery);
 
+    // get stmd restart information, doesn't exist on first swap, thus is dummy swap
+    if (iswap != 0) { 
+        int nsize = N + 21 + 1;
+        int k = 0;
+
+        double *list;
+        memory->create(list,nsize,"TemperSTMD:list");
+        std::ifstream file(filename);
+        for (int j=0; j<nsize; j++) {
+            file >> list[j];
+        }
+
+        N = static_cast<int> (list[k++]);
+        //if (N != Nbins) error->all(FLERR,"RESTMD: bins not equal from restart file");
+        for (int j=0; j<N; j++) {
+            Y2[j] = list[k++];
+        }
+        memory->destroy(list);
+    }
+
+    
     // compute PE
     // notify compute it will be called at next swap
 
@@ -279,13 +319,20 @@ void TemperSTMD::command(int narg, char **arg)
 
         if (me_universe < partner) {
             boltz_factor = (S - S_partner)
+        }
+    }
 
         */
 #ifdef TEMPER_DEBUG
-      if (me_universe < partner)
+      if (me_universe < partner) {
         printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
                me_universe,partner,swap,my_set_temp,partner_set_temp,
                pe,pe_partner,boltz_factor,exp(boltz_factor));
+        printf("N = %i vs %i filename = %s \nY2 = ",Nbins,N,filename);
+        for (int j=0; j<Nbins; j++) 
+            printf("%f ",Y2[j]);
+      }
+
 #endif
 
     }
