@@ -348,7 +348,7 @@ void FixSTMD::init()
   if(OREST) { // Read oREST.d into variables
       if(comm->me == 0) {
           int k = 0;
-          int nsize = N + 20 + 1;
+          int nsize = N + 21 + 1;
           double *list;
           memory->create(list,nsize,"stmd:list");
           //double list[nsize];
@@ -369,6 +369,7 @@ void FixSTMD::init()
           }
           fprintf(fp_irest,"\n");
 
+          int nbins = static_cast<int> (list[k++]);
           for (int i=0; i<N; i++) {
               Y2[i] = list[k++];
           }
@@ -393,7 +394,8 @@ void FixSTMD::init()
           CTmax = list[k++];
           int oldiworld = list[k++];
 
-          if(oldiworld != iworld) error->all(FLERR,"Walkers do not match restart file");
+          if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
+          if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
 
           memory->destroy(list);
     }
@@ -799,10 +801,11 @@ void FixSTMD::MAIN(int istep, double potE)
   if( (r == 0) && (comm->me == 0) ) {
 
       int k = 0;
-      int nsize = N + 20;
+      int nsize = N + 21;
       double *list;
       memory->create(list,nsize,"stmd:list");
 
+      list[k++] = N;
       for (int i=0; i<N; i++) {
           list[k++] = Y2[i];
       }
