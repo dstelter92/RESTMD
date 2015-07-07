@@ -33,9 +33,9 @@ dump_modify     id2 unwrap yes
 
 # Continue the simulation at constant volume (NVT) at 323K.
 fix             fxnvt all nvt temp 323.0 323.0 3000.0
-fix	            fxstmd all stmd 100 1.1 ${tlo} ${thi} ${ulo} ${uhi} 64 1000 4000 323 1000 0
+fix	            fxstmd all stmd 500 1.1 ${tlo} ${thi} ${ulo} ${uhi} 64 1000 4000 323 1000 0
 #fix            fixname all stmd RSTFRQ finit Tlo Thi Ulo Uhi binsize TSC1 TSC2 T0 PRTFRQ OREST
 
 restart         1000 restart/${tlo}-${thi}.*.restart
-restmd          1000 100 ${thi} fxstmd 64 0 12345
-#restmd         steps nevery Temp fixname binsize seed1 seed2
+restmd          1000 500 ${thi} fxstmd 64 ${ulo} ${uhi} 0 12345
+#restmd         steps nevery Temp fixname binsize Ulo Uhi seed1 seed2
