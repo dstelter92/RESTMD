@@ -36,8 +36,6 @@ class FixSTMD : public Fix {
   void min_post_force(int);
   void end_of_step();
   double memory_usage();
-  //void write_restart(FILE *);
-  //void read_restart(char *);
 
   double compute_scalar();
   double compute_array(int, int);
