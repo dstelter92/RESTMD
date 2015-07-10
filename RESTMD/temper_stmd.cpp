@@ -36,6 +36,7 @@
 #include "memory.h"
 #include "error.h"
 #include <fstream>
+#include "fix_stmd.h"
 
 using namespace LAMMPS_NS;
 
@@ -56,13 +57,14 @@ TemperSTMD::~TemperSTMD()
   delete [] temp2world;
   delete [] world2temp;
   delete [] world2root;
+  memory->destroy(Y2_copy);
 }
 
 /* ----------------------------------------------------------------------
    perform tempering with inter-world swaps
 ------------------------------------------------------------------------- */
 
-void TemperSTMD::command(int narg, char **arg)
+void TemperSTMD::command(int narg, char **arg )
 {
   if (universe->nworlds == 1)
     error->all(FLERR,"Must have more than one processor partition to temper");
@@ -83,6 +85,7 @@ void TemperSTMD::command(int narg, char **arg)
   bin = atoi(arg[4]);
   Emin = atoi(arg[5]);
   Emax = atoi(arg[6]);
+  Y2_copy = NULL;
   seed_swap = force->inumeric(FLERR,arg[7]);
   seed_boltz = force->inumeric(FLERR,arg[8]);
 
@@ -187,9 +190,9 @@ void TemperSTMD::command(int narg, char **arg)
 
   int i,which,partner,swap,partner_set_temp,partner_world;
   double pe,pe_partner,boltz_factor,new_temp;
-  //double Y2_partner;
-  int N,N_partner;
-  N = N_partner = Nbins;
+  memory->grow(Y2_copy, Nbins, "TemperSTMD:Y2_copy");
+  //double Y2_partner, *Y2;
+  //int N,N_partner;
   MPI_Status status;
 
   if (me_universe == 0 && universe->uscreen)
@@ -215,45 +218,61 @@ void TemperSTMD::command(int narg, char **arg)
 
   timer->init();
   timer->barrier_start(TIME_LOOP);
-
+/*
   // restart file setup
   char filename[256];
-  char walker[256]; // At most 127 replicas, should be enough.
+  char walker[256]; 
   sprintf(walker,"%i",iworld);
   strcat(filename,"./oREST.");
   strcat(filename,walker);
   strcat(filename,".d");
+  fopen(filename,"r");
+*/
+  int MyNsize = Nbins + 21 + 1;
 
-  for (int iswap = 0; iswap <= nswaps; iswap++) {
+  for (int iswap = 0; iswap < nswaps; iswap++) {
 
     // run for nevery timesteps
 
     update->integrate->run(nevery);
-
+/*
     // get stmd restart information, doesn't exist on first swap, thus is dummy swap
     if (iswap != 0) { 
-        int nsize = N + 21 + 1;
         int k = 0;
+        int position = 0;
 
         double *list;
-        memory->create(list,nsize,"TemperSTMD:list");
+        memory->create(list,MyNsize,"TemperSTMD:list");
         std::ifstream file(filename);
-        for (int j=0; j<nsize; j++) {
-            file >> list[j];
+        //file.open (filename, std::ifstream::in);
+        while (!file.eof() && position < MyNsize) {
+        //for (int j=0; j<MyNsize; j++) {
+            file >> list[position];
         }
+        //}
 
-        N = static_cast<int> (list[k++]);
-        //if (N != Nbins) error->all(FLERR,"RESTMD: bins not equal from restart file");
-        for (int j=0; j<N; j++) {
+        //N = static_cast<int> (list[k++]);
+        for (int j=0; j<Nbins; j++) {
             Y2[j] = list[k++];
         }
+
+        if (me_universe == 0) {
+            if (universe->uscreen) {
+                fprintf(universe->uscreen,"list = ");
+                for (int j=0; j<MyNsize; j++)
+                    fprintf(universe->uscreen,"%f ",list[j]);
+                fprintf(universe->uscreen,"\n");
+                fprintf(universe->uscreen,"%d\n",MyNsize);
+            }
+        }
+
         memory->destroy(list);
     }
-
-    
+*/
     // compute PE
     // notify compute it will be called at next swap
 
+    
     pe = pe_compute->compute_scalar();
     pe_compute->addstep(update->ntimestep + nevery);
 
@@ -328,9 +347,10 @@ void TemperSTMD::command(int narg, char **arg)
         printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
                me_universe,partner,swap,my_set_temp,partner_set_temp,
                pe,pe_partner,boltz_factor,exp(boltz_factor));
-        printf("N = %i vs %i filename = %s \nY2 = ",Nbins,N,filename);
+        printf("RESTMD: N = %i Y2 = ",Nbins);
         for (int j=0; j<Nbins; j++) 
-            printf("%f ",Y2[j]);
+            printf("%f ",Y2_copy[j]);
+        printf("\n");
       }
 
 #endif
@@ -419,3 +439,4 @@ void TemperSTMD::print_status()
     fflush(universe->ulogfile);
   }
 }
+

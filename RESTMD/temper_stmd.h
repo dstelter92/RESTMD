@@ -29,6 +29,7 @@ class TemperSTMD : protected Pointers {
   TemperSTMD(class LAMMPS *);
   ~TemperSTMD();
   void command(int, char **);
+  double* get_Y2(double*);
 
  private:
   int me,me_universe;          // my proc ID in world and universe
@@ -43,7 +44,7 @@ class TemperSTMD : protected Pointers {
   int whichfix;                // index of temperature fix to use
   int fixstyle;                // what kind of temperature fix is used
   int bin, Emin, Emax, BinMin, BinMax;
-  double * Y2, * Y2_partner;
+  double * Y2_copy, * Y2_partner;
   //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating

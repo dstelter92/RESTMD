@@ -148,7 +148,7 @@ void FixSTMD::init()
   // Get number of replicas (worlds) and walker number
   nworlds = universe->nworlds;
   iworld = universe->iworld;
-  char walker[256]; // At most 127 replicas, should be enough.
+  char walker[256]; 
   sprintf(walker,"%i",iworld);
 
   // These are all other variables initialized in stmd.f::stmdcntrl()
@@ -369,7 +369,7 @@ void FixSTMD::init()
           }
           fprintf(fp_irest,"\n");
 
-          int nbins = static_cast<int> (list[k++]);
+          //int nbins = static_cast<int> (list[k++]);
           for (int i=0; i<N; i++) {
               Y2[i] = list[k++];
           }
@@ -395,7 +395,7 @@ void FixSTMD::init()
           int oldiworld = list[k++];
 
           if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
-          if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
+          //if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
 
           memory->destroy(list);
     }
@@ -805,7 +805,7 @@ void FixSTMD::MAIN(int istep, double potE)
       double *list;
       memory->create(list,nsize,"stmd:list");
 
-      list[k++] = N;
+      //list[k++] = N;
       for (int i=0; i<N; i++) {
           list[k++] = Y2[i];
       }
@@ -840,7 +840,7 @@ void FixSTMD::MAIN(int istep, double potE)
       strcat(filename,".d");
       freopen(filename,"w",fp_orest);
       //fprintf(fp_orest,"STMD Output Restart Information, Step: %i, nbins: %i\n",istep,N);
-      for(int i=0; i<nsize; i++) fprintf(fp_orest,"%f\n",list[i]);
+      for(int i=0; i<nsize; i++) fprintf(fp_orest,"%f ",list[i]);
 
       memory->destroy(list);
   }

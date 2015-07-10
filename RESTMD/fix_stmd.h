@@ -40,6 +40,7 @@ class FixSTMD : public Fix {
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
+  //friend class Temper_STMD;
 
  private:
   // arguments of fix; these variables were initialized in charmm.inp
