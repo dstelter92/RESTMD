@@ -408,9 +408,9 @@ void FixSTMD::init()
 
   if(stmd_logfile) {
     fprintf(logfile,"STMD Check initial values...\n");
-    fprintf(logfile,"STMD N= %i  bin= %i\n",N, bin); // diffE was included in stmd.f, but don't know what that is
+    fprintf(logfile,"STMD STG= %i N= %i  bin= %i\n",STG, N, bin); // diffE was included in stmd.f, but don't know what that is
     fprintf(screen,"STMD Check initial values...\n");
-    fprintf(screen,"STMD N= %i  bin= %i\n",N, bin); 
+    fprintf(screen,"STMD STG= %i N= %i  bin= %i\n",STG, N, bin); 
 
     // fprintf(logfile,"STMD Elist= ");
     // for(int i=0; i<N; i++) fprintf(logfile," %f",Elist[i]);
@@ -629,9 +629,8 @@ void FixSTMD::HCHK()
     if( (Y2[i] > CTmin) && (Y2[i] < CTmax) ) {
       eval = abs(double(Hist[i] - aveH) / aveH);
       if(eval > HCKtol) ichk++;
-      if(stmd_logfile)
-	fprintf(logfile,"STMD CHK HIST: totCi= %i  i= %i  eval= %f  HCKtol= %f  ichk= %i  Hist[i]= %i\n",
-		totCi,i,eval,HCKtol,ichk,Hist[i]);
+      //if(stmd_logfile)
+	//fprintf(logfile,"STMD CHK HIST: totCi= %i  i= %i  eval= %f  HCKtol= %f  ichk= %i  Hist[i]= %i\n",totCi,i,eval,HCKtol,ichk,Hist[i]);
     }
   }
 

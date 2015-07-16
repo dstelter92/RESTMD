@@ -36,6 +36,7 @@ class FixSTMD : public Fix {
   void min_post_force(int);
   void end_of_step();
   double memory_usage();
+  double * Y2;
 
   double compute_scalar();
   double compute_array(int, int);
@@ -64,7 +65,7 @@ class FixSTMD : public Fix {
   double * Elist;
   double f, df, T0, T1, T2, CTmin, CTmax, scaleT;
 
-  double * Y1, * Y2, * Prob;
+  double * Y1, * Prob;
   int * Hist, * Htot, * PROH;
 
   int stmd_logfile, stmd_debug;
