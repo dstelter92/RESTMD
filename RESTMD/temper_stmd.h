@@ -55,6 +55,8 @@ class TemperSTMD : protected Pointers {
 
   void scale_velocities(int, int);
   void print_status();
+
+  class FixSTMD * fix_stmd;
 };
 
 }

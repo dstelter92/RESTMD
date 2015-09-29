@@ -36,16 +36,25 @@ class FixSTMD : public Fix {
   void min_post_force(int);
   void end_of_step();
   double memory_usage();
+  double * Y2;
 
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
-  double T_me;
   //friend class Temper_STMD;
 
- private:
+  // We're just picking on bin as an example, put variables to be
+  // accessible from temperSTMD command here and leave everything
+  // else as private.
+public:
+  int bin;
+  
+private:
   // arguments of fix; these variables were initialized in charmm.inp
-  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
+
+  //  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
+  int RSTFRQ, PRNFRQ, TSC1, TSC2, OREST;
+
   double initf, TL, TH, Emin, Emax, ST;
   char dir_output[256]; // optional argument for output directory
   int iworld,nworlds; // world info
@@ -65,7 +74,7 @@ class FixSTMD : public Fix {
   double * Elist;
   double f, df, T0, T1, T2, CTmin, CTmax, scaleT;
 
-  double * Y1, * Y2, * Prob;
+  double * Y1, * Prob;
   int * Hist, * Htot, * PROH;
 
   int stmd_logfile, stmd_debug;

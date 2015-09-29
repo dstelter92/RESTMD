@@ -558,7 +558,6 @@ void FixSTMD::GammaE(double potE, int indx)
   } else T = Y2[i];
 
   Gamma = 1.0 / T;
-  T_me = T;
 }
 
 /* ---------------------------------------------------------------------- */

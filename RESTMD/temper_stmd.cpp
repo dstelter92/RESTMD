@@ -82,6 +82,12 @@ void TemperSTMD::command(int narg, char **arg )
   if (whichfix == modify->nfix)
     error->universe_all(FLERR,"Tempering fix ID is not defined");
 
+  // Set pointer to stmd fix
+  fix_stmd = (FixSTMD*)(modify->fix[whichfix]);
+
+  // Mess with something to see change in log file
+  fix_stmd->bin = 63;
+
   bin = atoi(arg[4]);
   Emin = atoi(arg[5]);
   Emax = atoi(arg[6]);
