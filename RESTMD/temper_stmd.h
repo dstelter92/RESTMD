@@ -29,7 +29,6 @@ class TemperSTMD : protected Pointers {
   TemperSTMD(class LAMMPS *);
   ~TemperSTMD();
   void command(int, char **);
-  double* get_Y2(double*);
 
  private:
   int me,me_universe;          // my proc ID in world and universe
@@ -44,7 +43,8 @@ class TemperSTMD : protected Pointers {
   int whichfix;                // index of temperature fix to use
   int fixstyle;                // what kind of temperature fix is used
   int bin, Emin, Emax, BinMin, BinMax;
-  double * Y2_copy, * Y2_partner;
+  double T_me,T_partner;
+  int current_STG;
   //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating
@@ -108,5 +108,9 @@ E: Tempering could not find thermo_pe compute
 
 This compute is created by the thermo command.  It must have been
 explicitly deleted by a uncompute command.
+
+E: Bin size not the same
+
+The bin size for temper and fix_stmd is not the same in the input file.
 
 */

@@ -57,7 +57,6 @@ TemperSTMD::~TemperSTMD()
   delete [] temp2world;
   delete [] world2temp;
   delete [] world2root;
-  memory->destroy(Y2_copy);
 }
 
 /* ----------------------------------------------------------------------
@@ -85,20 +84,23 @@ void TemperSTMD::command(int narg, char **arg )
   // Set pointer to stmd fix
   fix_stmd = (FixSTMD*)(modify->fix[whichfix]);
 
-  // Mess with something to see change in log file
-  fix_stmd->bin = 63;
 
   bin = atoi(arg[4]);
   Emin = atoi(arg[5]);
   Emax = atoi(arg[6]);
-  Y2_copy = NULL;
   seed_swap = force->inumeric(FLERR,arg[7]);
   seed_boltz = force->inumeric(FLERR,arg[8]);
 
-  // calculate bin size
+  // calculate number of bins
   BinMin = round(Emin / bin);
   BinMax = round(Emax / bin);
   int Nbins = BinMax - BinMin + 1;
+
+  
+  // Mess with something to see change in log file
+  bin = fix_stmd->bin;
+  if (fix_stmd->bin != bin)
+      error->universe_all(FLERR,"Bin size not the same");
 
   my_set_temp = universe->iworld;
   if (narg == 10) my_set_temp = force->inumeric(FLERR,arg[9]);
@@ -196,9 +198,6 @@ void TemperSTMD::command(int narg, char **arg )
 
   int i,which,partner,swap,partner_set_temp,partner_world;
   double pe,pe_partner,boltz_factor,new_temp;
-  memory->grow(Y2_copy, Nbins, "TemperSTMD:Y2_copy");
-  //double Y2_partner, *Y2;
-  //int N,N_partner;
   MPI_Status status;
 
   if (me_universe == 0 && universe->uscreen)
@@ -224,63 +223,23 @@ void TemperSTMD::command(int narg, char **arg )
 
   timer->init();
   timer->barrier_start(TIME_LOOP);
-/*
-  // restart file setup
-  char filename[256];
-  char walker[256]; 
-  sprintf(walker,"%i",iworld);
-  strcat(filename,"./oREST.");
-  strcat(filename,walker);
-  strcat(filename,".d");
-  fopen(filename,"r");
-*/
-  int MyNsize = Nbins + 21 + 1;
 
   for (int iswap = 0; iswap < nswaps; iswap++) {
 
     // run for nevery timesteps
 
     update->integrate->run(nevery);
-/*
-    // get stmd restart information, doesn't exist on first swap, thus is dummy swap
-    if (iswap != 0) { 
-        int k = 0;
-        int position = 0;
 
-        double *list;
-        memory->create(list,MyNsize,"TemperSTMD:list");
-        std::ifstream file(filename);
-        //file.open (filename, std::ifstream::in);
-        while (!file.eof() && position < MyNsize) {
-        //for (int j=0; j<MyNsize; j++) {
-            file >> list[position];
-        }
-        //}
-
-        //N = static_cast<int> (list[k++]);
-        for (int j=0; j<Nbins; j++) {
-            Y2[j] = list[k++];
-        }
-
-        if (me_universe == 0) {
-            if (universe->uscreen) {
-                fprintf(universe->uscreen,"list = ");
-                for (int j=0; j<MyNsize; j++)
-                    fprintf(universe->uscreen,"%f ",list[j]);
-                fprintf(universe->uscreen,"\n");
-                fprintf(universe->uscreen,"%d\n",MyNsize);
-            }
-        }
-
-        memory->destroy(list);
-    }
-*/
     // compute PE
     // notify compute it will be called at next swap
 
-    
     pe = pe_compute->compute_scalar();
     pe_compute->addstep(update->ntimestep + nevery);
+
+    // Get fix stmd information
+
+    current_STG = fix_stmd->STG;
+    T_me = (fix_stmd->T)*(fix_stmd->ST);
 
     // which = which of 2 kinds of swaps to do (0,1)
 
@@ -312,6 +271,7 @@ void TemperSTMD::command(int narg, char **arg )
     // lo proc make Boltzmann decision on whether to swap
     // lo proc communicates decision back to hi proc
 
+/* OLD TEMPER CRITERIA
     swap = 0;
     if (partner != -1) {
       if (me_universe > partner)
@@ -331,32 +291,40 @@ void TemperSTMD::command(int narg, char **arg )
         MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld);
       else
         MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
+*/
 
-    /*
+    // RESTMD Acceptance Criteria
     swap = 0;
     if (partner != -1) {
-        if (me_universe > partner) // Send T(s) to partner
-            MPI_Send(&Y2,1,MPI_DOUBLE,partner,0,universe->uworld);
-        else // Receive T(s) from partner
-            MPI_Recv(&Y2_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+      if (me_universe > partner) {
+        MPI_Send(&pe,1,MPI_DOUBLE,partner,0,universe->uworld);
+        MPI_Send(&T_me,1,MPI_DOUBLE,partner,0,universe->uworld);
+      }
+      else {
+        MPI_Recv(&pe_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+        MPI_Recv(&T_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+      }
 
-        // Integrate Y2 into S
+      if (me_universe < partner) {
+        boltz_factor = (pe_partner - pe) *
+          (1.0/(boltz*T_partner) -
+           1.0/(boltz*T_me));
+        if (boltz_factor >= 0.0) swap = 1;
+        else if (ranboltz->uniform() < exp(boltz_factor)) swap = 1;
+      }
 
-        if (me_universe < partner) {
-            boltz_factor = (S - S_partner)
-        }
-    }
+      if (me_universe < partner)
+        MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld);
+      else
+        MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
 
-        */
+        
 #ifdef TEMPER_DEBUG
       if (me_universe < partner) {
         printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
                me_universe,partner,swap,my_set_temp,partner_set_temp,
                pe,pe_partner,boltz_factor,exp(boltz_factor));
-        printf("RESTMD: N = %i Y2 = ",Nbins);
-        for (int j=0; j<Nbins; j++) 
-            printf("%f ",Y2_copy[j]);
-        printf("\n");
+        printf("RESTMD: N = %d, STG = %d, T_s = %f %f\n",Nbins,current_STG,T_me,T_partner);
       }
 
 #endif

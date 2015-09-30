@@ -259,6 +259,7 @@ void FixSTMD::init()
   totCi   = 0;
   SWchk   = 1;
   CountPH = 0;
+  T = ST; // latest T_s at bin i
 
   //memory->grow(Elist, N, "FixSTMD:Elist");
 
@@ -525,7 +526,7 @@ int FixSTMD::Yval(double potE)
   int i = round(potE / double(bin)) - BinMin + 1;
 
   if( (i<1) || (i>N-1) ) {
-    fprintf(stdout,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
+    fprintf(stdout,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
     error->one(FLERR,"Histogram index out of range");
   }
 
@@ -548,7 +549,7 @@ void FixSTMD::GammaE(double potE, int indx)
 
   const double e = potE - double( round(potE / double(bin)) * bin );
 
-  double T;  
+  //double T;  // made this public to share with RESTMD
   if(e > 0.0) {
     const double lam = (Y2[ip] - Y2[i]) / double(bin);
     T = Y2[i] + lam * e;
@@ -654,7 +655,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // Gamma Update
   GammaE(potE,stmdi);
 
-  if(stmd_debug) fprintf(logfile,"STMD totCi= %i Count= %i Gamma= %f stmdi= %i\n",totCi,Count,Gamma,stmdi);
+  if(stmd_debug) fprintf(logfile,"STMD totCi= %i Count= %i Gamma= %f stmdi= %i\n T= %f",totCi,Count,Gamma,stmdi,T);
 
   // Histogram Update
   AddedEHis(stmdi);
@@ -703,7 +704,7 @@ void FixSTMD::MAIN(int istep, double potE)
 	CountH = 0;
       } else {
 	SWchk++;
-	if(stmd_logfile) fprintf(logfile,"STMD STG3 f= %f  Swchk= %i\n",f,SWchk);
+	if(stmd_logfile) fprintf(logfile,"STMD STG3 f= %f  Swchk= %i T= %f\n",f,SWchk,T);
       }
 
       // Check stage 3
@@ -751,7 +752,7 @@ void FixSTMD::MAIN(int istep, double potE)
 	CountPH = 0;
 	if(stmd_logfile) {
 	  fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-	  fprintf(logfile,"STMD STG2: STG= %i\n",STG);
+	  fprintf(logfile,"STMD STG2: STG= %i T= %f\n",STG,T);
 	}
 	SWchk = 1;
 	
@@ -769,7 +770,7 @@ void FixSTMD::MAIN(int istep, double potE)
     if(m == 0) {
       if(stmd_logfile) {
 	fprintf(logfile,"STMD STAGE 1\n");
-	fprintf(logfile,"STMD STG1 DIG: istep= %i  TSC1= %i\n",istep,TSC1);
+	fprintf(logfile,"STMD STG1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
       }
       
       dig();

@@ -47,7 +47,8 @@ class FixSTMD : public Fix {
   // accessible from temperSTMD command here and leave everything
   // else as private.
 public:
-  int bin;
+  int bin, STG;
+  double T, ST;
   
 private:
   // arguments of fix; these variables were initialized in charmm.inp
@@ -55,7 +56,7 @@ private:
   //  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
   int RSTFRQ, PRNFRQ, TSC1, TSC2, OREST;
 
-  double initf, TL, TH, Emin, Emax, ST;
+  double initf, TL, TH, Emin, Emax;
   char dir_output[256]; // optional argument for output directory
   int iworld,nworlds; // world info
   // other variables initialized in stmd.f::stmdcntrl()
@@ -68,11 +69,11 @@ private:
   int QREST, QEXPO, QEXP1;
 
   int BinMin, BinMax, N;
-  int STG, SWf, Count, CountH, totC, totCi, SWchk, CountPH, SWfold;
-  double Gamma;
+  int SWf, Count, CountH, totC, totCi, SWchk, CountPH, SWfold;
 
   double * Elist;
   double f, df, T0, T1, T2, CTmin, CTmax, scaleT;
+  double Gamma;
 
   double * Y1, * Prob;
   int * Hist, * Htot, * PROH;
