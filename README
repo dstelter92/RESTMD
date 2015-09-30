@@ -6,8 +6,8 @@ Thu Jul  2 11:59:06 EDT 2015
 TO DO:
 [x] Make STMD restart [6-30-15]
 {x] Add universe variable to each *.d file created by fix_stmd.cpp [7-2-15]
-[x] Add any necessary RESTMD restart information to oREST.d and iREST.d
-[x] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp
+[x] Add any necessary RESTMD restart information to oREST.d and iREST.d [9-30-15]
+[x] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp [9-30-15]
 [ ] Check velocity rescaling, verify acceptance criteria, and benchmark algorithm
 
 
