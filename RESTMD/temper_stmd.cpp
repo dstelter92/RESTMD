@@ -306,9 +306,7 @@ void TemperSTMD::command(int narg, char **arg )
       }
 
       if (me_universe < partner) {
-        boltz_factor = (pe_partner - pe) *
-          (1.0/(boltz*T_partner) -
-           1.0/(boltz*T_me));
+        boltz_factor = (pe_partner - pe)*(1.0/(boltz*T_partner) - 1.0/(boltz*T_me));
         if (boltz_factor >= 0.0) swap = 1;
         else if (ranboltz->uniform() < exp(boltz_factor)) swap = 1;
       }
@@ -321,9 +319,9 @@ void TemperSTMD::command(int narg, char **arg )
         
 #ifdef TEMPER_DEBUG
       if (me_universe < partner) {
-        printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g\n",
+        printf("SWAP %d & %d: yes = %d,Ts = %d %d, PEs = %g %g, Bz = %g %g rand = %g\n",
                me_universe,partner,swap,my_set_temp,partner_set_temp,
-               pe,pe_partner,boltz_factor,exp(boltz_factor));
+               pe,pe_partner,boltz_factor,exp(boltz_factor),ranboltz->uniform());
         printf("RESTMD: N = %d, STG = %d, T_s = %f %f\n",Nbins,current_STG,T_me,T_partner);
       }
 
@@ -337,7 +335,8 @@ void TemperSTMD::command(int narg, char **arg )
 
     // rescale kinetic energy via velocities if move is accepted
 
-    if (swap) scale_velocities(partner_set_temp,my_set_temp);
+    // velocity rescaling not needed in RESTMD under homogeneous temperature control
+    //if (swap) scale_velocities(partner_set_temp,my_set_temp);
 
     // if my world swapped, all procs in world reset temp target of Fix
 
@@ -351,7 +350,7 @@ void TemperSTMD::command(int narg, char **arg )
     // allgather across root procs
     // bcast within my world
 
-    if (swap) my_set_temp = partner_set_temp;
+    ///if (swap) my_set_temp = partner_set_temp;
     if (me == 0) {
       MPI_Allgather(&my_set_temp,1,MPI_INT,world2temp,1,MPI_INT,roots);
       for (i = 0; i < nworlds; i++) temp2world[world2temp[i]] = i;
