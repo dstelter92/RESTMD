@@ -375,6 +375,8 @@ void FixSTMD::init()
               Y2[i] = list[k++];
           }
           STG = static_cast<int> (list[k++]);
+          f = list[k++];
+          df = list[k++];
           SWf = static_cast<int> (list[k++]);
           SWfold = static_cast<int> (list[k++]);
           SWchk = static_cast<int> (list[k++]);
@@ -385,8 +387,6 @@ void FixSTMD::init()
           TSC1 = static_cast<int> (list[k++]);
           TSC2 = static_cast<int> (list[k++]);
           Gamma = list[k++];
-          f = list[k++];
-          df = list[k++];
           T0 = list[k++];
           ST = list[k++];
           T1 = list[k++];
@@ -835,6 +835,8 @@ void FixSTMD::MAIN(int istep, double potE)
           list[k++] = Y2[i];
       }
       list[k++] = STG;
+      list[k++] = f;
+      list[k++] = df;
       list[k++] = SWf;
       list[k++] = SWfold;
       list[k++] = SWchk;
@@ -845,8 +847,6 @@ void FixSTMD::MAIN(int istep, double potE)
       list[k++] = TSC1;
       list[k++] = TSC2;
       list[k++] = Gamma;
-      list[k++] = f;
-      list[k++] = df;
       list[k++] = T0;
       list[k++] = ST;
       list[k++] = T1;
