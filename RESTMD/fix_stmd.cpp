@@ -670,8 +670,8 @@ void FixSTMD::MAIN(int istep, double potE)
   // Hist Output
   int m = istep % PRNFRQ;
   if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_whnm,"%i %i %i %i %i %i %f\n",
-				   totCi, i, Hist[i], Htot[i], CountH, totCi, f);
+    for(int i=0; i<N; i++) fprintf(fp_whnm,"%i %i %i %i %i %i %i %f\n",
+				   totCi, i, i*bin+Emin, Hist[i], Htot[i], CountH, totCi, f);
     fprintf(fp_whnm,"\n\n");
   }
 
@@ -714,8 +714,8 @@ void FixSTMD::MAIN(int istep, double potE)
       // Production run: Hist Output
       m = istep % PRNFRQ;
       if( (m == 0) && (comm->me == 0) ) {
-	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %f %i %i %f\n",
-				       CountPH, i, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
+	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",
+				       CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
 	fprintf(fp_whpnm,"\n\n");
       }
     } // if((m == 0) && (nworlds == 1))
@@ -814,8 +814,8 @@ void FixSTMD::MAIN(int istep, double potE)
   // Yval output
   m = istep % PRNFRQ;
   if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_wtnm,"%i %i %f %f %f\n",
-				   totCi, i, Y2[i], Y2[i], ST);
+    for(int i=0; i<N; i++) fprintf(fp_wtnm,"%i %i %i %f %f\n",
+				   totCi, i, i*bin+Emin, Y2[i], ST);
     fprintf(fp_wtnm,"\n\n");
   }
 

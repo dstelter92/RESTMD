@@ -48,7 +48,7 @@ class FixSTMD : public Fix {
   // else as private.
 public:
   int bin, STG;
-  double T, ST;
+  double T, ST, f;
   
 private:
   // arguments of fix; these variables were initialized in charmm.inp
@@ -72,7 +72,7 @@ private:
   int SWf, Count, CountH, totC, totCi, SWchk, CountPH, SWfold;
 
   double * Elist;
-  double f, df, T0, T1, T2, CTmin, CTmax, scaleT;
+  double df, T0, T1, T2, CTmin, CTmax, scaleT;
   double Gamma;
 
   double * Y1, * Prob;

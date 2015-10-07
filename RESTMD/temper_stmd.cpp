@@ -326,7 +326,7 @@ void TemperSTMD::command(int narg, char **arg )
         printf("SWAP %d & %d: yes = %d, T = %d %d, PEs = %g %g, Bz = %g %g rand = %g\n",
                me_universe,partner,swap,my_set_temp,partner_set_temp,
                pe,pe_partner,boltz_factor,exp(boltz_factor),ranboltz->uniform());
-        printf("RESTMD: N = %d, STG = %d, T_s = %f %f\n",Nbins,current_STG,T_me,T_partner);
+        printf("RESTMD: N = %d, STG = %d, T_s = %f %f, f = %f\n",Nbins,current_STG,T_me,T_partner,fix_stmd->f);
       }
 
 #endif
