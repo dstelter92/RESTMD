@@ -711,7 +711,7 @@ void FixSTMD::MAIN(int istep, double potE)
       // Check stage 3
       if(f <= finFval) STG = 4;
 
-      // Production run: Hist Output
+      // Production run: Hist Output STMD
       m = istep % PRNFRQ;
       if( (m == 0) && (comm->me == 0) ) {
 	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",
@@ -731,6 +731,16 @@ void FixSTMD::MAIN(int istep, double potE)
       // Histogram reset
       ResetPH();
       CountH = 0;
+
+      // Check stage 3
+      if(f <= finFval) STG = 4;
+
+      // Production run: Hist Output RESTMD
+      m = istep % PRNFRQ;
+      if( (m == 0) && (comm->me == 0) ) {
+          for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
+          fprintf(fp_whpnm,"\n\n");
+      }
     } // if((m == 0) && (nworlds > 1))
   } // if(STG >= 3)
 
@@ -780,11 +790,18 @@ void FixSTMD::MAIN(int istep, double potE)
         if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
         f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
+        if(f <= pfinFval) {
+            STG = 3;
+            CountPH = 0;
+        }
 	    if(stmd_logfile) {
 	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
 	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
-	    }
-    } // if((m == 0) && (nworlds > 1 )) 
+
+        ResetPH();
+        CountH = 0;
+        }
+	} // if((m == 0) && (nworlds > 1 )) 
 
   } // if(STG == 2)
 
