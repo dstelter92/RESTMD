@@ -788,7 +788,7 @@ void FixSTMD::MAIN(int istep, double potE)
 
     if((m == 0) && (nworlds > 1)) { // If RESTMD...
         if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
-        f = sqrt(f);
+        if(istep != 0) f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
         if(f <= pfinFval) {
             STG = 3;
