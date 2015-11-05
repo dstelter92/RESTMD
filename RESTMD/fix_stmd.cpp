@@ -90,8 +90,9 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   TSC2   = atof(arg[11]);
   ST     = atof(arg[12]); // This value should be consistent with target temperature of thermostat fix
   PRNFRQ = atoi(arg[13]);
-  OREST  = atoi(arg[14]); // 0 for new run, 1 for restart
-  if(narg == 16) strcpy(dir_output,arg[15]);
+  RE_flag = atoi(arg[14]);
+  OREST  = atoi(arg[15]); // 0 for new run, 1 for restart
+  if(narg == 17) strcpy(dir_output,arg[16]);
   else strcpy(dir_output,"./");
   
   //Elist = NULL;
@@ -720,7 +721,7 @@ void FixSTMD::MAIN(int istep, double potE)
       }
     } // if((m == 0) && (nworlds == 1))
 
-    if((m == 0) && (nworlds > 1)) { // RESTMD, reduce f to sqrt(f) every TSC2 steps
+    if((m == 0) && (RE_flag == 1)) { // RESTMD, reduce f to sqrt(f) every TSC2 steps
       if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
       f = sqrt(f);
       df = log(f) * 0.5 / double(bin);
@@ -741,7 +742,7 @@ void FixSTMD::MAIN(int istep, double potE)
           for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
           fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (nworlds > 1))
+    } // if((m == 0) && (RE_flag == 1))
   } // if(STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
@@ -786,7 +787,7 @@ void FixSTMD::MAIN(int istep, double potE)
       
     } // if((m == 0) && (nworlds == 1)) 
 
-    if((m == 0) && (nworlds > 1)) { // If RESTMD...
+    if((m == 0) && (RE_flag == 1)) { // If RESTMD...
         if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
         if(istep != 0) f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
@@ -801,7 +802,7 @@ void FixSTMD::MAIN(int istep, double potE)
         ResetPH();
         CountH = 0;
         }
-	} // if((m == 0) && (nworlds > 1 )) 
+	} // if((m == 0) && (RE_flag == 1)) 
 
   } // if(STG == 2)
 

@@ -13,6 +13,8 @@
 
 /* ----------------------------------------------------------------------
    Contributing author: Mark Sears (SNL)
+
+   Modified for RESTMD by David Stelter (BU) and Chris Knight (ANL)
 ------------------------------------------------------------------------- */
 
 #include "math.h"
@@ -69,7 +71,7 @@ void TemperSTMD::command(int narg, char **arg )
     error->all(FLERR,"Must have more than one processor partition to temper");
   if (domain->box_exist == 0)
     error->all(FLERR,"Temper command before simulation box is defined");
-  if (narg != 9 && narg != 10)
+  if (narg != 6 && narg != 7)
     error->universe_all(FLERR,"Illegal temper command");
 
   int nsteps = force->inumeric(FLERR,arg[0]);
@@ -84,26 +86,23 @@ void TemperSTMD::command(int narg, char **arg )
   // Set pointer to stmd fix
   fix_stmd = (FixSTMD*)(modify->fix[whichfix]);
 
+  //bin = atoi(arg[4]);
+  seed_swap = force->inumeric(FLERR,arg[4]);
+  seed_boltz = force->inumeric(FLERR,arg[5]);
+  EX_flag = atoi(arg[6]); //exchange flag, 0 if swap off (run many replicas without exchange), 1 if swap on.
 
-  bin = atoi(arg[4]);
-  Emin = atoi(arg[5]);
-  Emax = atoi(arg[6]);
-  seed_swap = force->inumeric(FLERR,arg[7]);
-  seed_boltz = force->inumeric(FLERR,arg[8]);
+  N_me = fix_stmd->N;
 
-  // calculate number of bins
-  BinMin = round(Emin / bin);
-  BinMax = round(Emax / bin);
-  int Nbins = BinMax - BinMin + 1;
-
-  
   // Mess with something to see change in log file
-  bin = fix_stmd->bin;
-  if (fix_stmd->bin != bin)
-      error->universe_all(FLERR,"Bin size not the same");
+  //bin = fix_stmd->bin;
+  //if (fix_stmd->bin != bin)
+  //    error->universe_all(FLERR,"Bin size not the same");
+
+  if (fix_stmd->ST != temp)
+      error->universe_all(FLERR,"Kinetic temperatures not the same, use homogeneous temperature control");
 
   my_set_temp = universe->iworld;
-  if (narg == 10) my_set_temp = force->inumeric(FLERR,arg[9]);
+  if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
 
   // swap frequency must evenly divide total # of timesteps
 
@@ -136,6 +135,14 @@ void TemperSTMD::command(int narg, char **arg )
   nworlds = universe->nworlds;
   iworld = universe->iworld;
   boltz = force->boltz;
+
+  // Setup Swap information
+  int nlocal_values = fix_stmd->N + 2; // length of Y2 array + {TL and TH}
+  //int nlocal_values_partner = fix_stmd->N + 2;
+
+  double *local_values = local_values_partner = NULL;
+  memory->create(local_values,nlocal_values,"local_values");
+  memory->create(local_values_partner,nlocal_values,"local_values_partner");
 
   // pe_compute = ptr to thermo_pe compute
   // notify compute it will be called at first swap
@@ -170,6 +177,8 @@ void TemperSTMD::command(int narg, char **arg )
   // create static list of set temperatures
   // allgather tempering arg "temp" across root procs
   // bcast from each root to other procs in world
+  // leave this in place in the case of inhomogeous temperature
+  // control for RESTMD
 
   set_temp = new double[nworlds];
   if (me == 0) MPI_Allgather(&temp,1,MPI_DOUBLE,set_temp,1,MPI_DOUBLE,roots);
@@ -319,16 +328,15 @@ void TemperSTMD::command(int narg, char **arg )
       else
         MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
 
+      if (EX_flag == 0) swap = 0; //If 0, exchanges turned off
+
 
         
 #ifdef TEMPER_DEBUG
       if (me_universe < partner) {
-        printf("SWAP %d & %d: yes = %d, T = %d %d, PEs = %g %g, Bz = %g %g rand = %g\n",
-               me_universe,partner,swap,my_set_temp,partner_set_temp,
-               pe,pe_partner,boltz_factor,exp(boltz_factor),ranboltz->uniform());
-        printf("RESTMD: N = %d, STG = %d, T_s = %f %f, f = %f\n",Nbins,current_STG,T_me,T_partner,fix_stmd->f);
+        printf("SWAP %d & %d: yes = %d, T = %d %d, PEs = %g %g, Bz = %g %g rand = %g\n",me_universe,partner,swap,my_set_temp,partner_set_temp,pe,pe_partner,boltz_factor,exp(boltz_factor),ranboltz->uniform());
+        printf("RESTMD: N = %d, STG = %d, T_s = %f %f, f = %f\n",fix_stmd->N,current_STG,T_me,T_partner,fix_stmd->f);
       }
-
 #endif
 
     }
@@ -337,10 +345,46 @@ void TemperSTMD::command(int narg, char **arg )
 
     MPI_Bcast(&swap,1,MPI_INT,0,world);
 
-    // rescale kinetic energy via velocities if move is accepted
+    // get information that is being swapped, pack into local_values, send, and receive as local_values_partner
+/*
+    if (swap) {
+        for(int i=0; i<N_me; i++) local_values[i] = fix_stmd->Y2[i];
+        local_values[N_me+1] = fix_stmd->TL;
+        local_values[N_me+2] = fix_stmd->TH;
 
+        int recv_tag = 0;
+        int send_tag = 1;
+        
+#ifdef TEMPER_DEBUG
+        if (me_universe < partner) {
+            printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+        }
+#endif
+
+        //MPI_Sendrecv(&(local_values[0]),N_me+2,MPI_DOUBLE,partner,send_tag,&(local_values_partner[0]),N_me+2,MPI_DOUBLE,partner,recv_tag,universe->uworld,&status);
+
+        // swap values...
+        
+        for(int i=0; i<N_me; i++) fix_stmd->Y2[i] = local_values_partner[i];
+        fix_stmd->TL = local_values_partner[N_me+1];
+        fix_stmd->TH = local_values_partner[N_me+2];
+
+#ifdef TEMPER_DEBUG
+        if (me_universe < partner) {
+            printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+        }
+#endif
+
+
+        //if (me == 0) MPI_Allgather(local_values, nlocal_values, MPI_DOUBLE, global_values, nglobal_values, MPI_DOUBLE, roots);
+        //MPI_Bcast(global_values,nglobal_values,MPI_DOUBLE,0,world);        
+    }
+*/
+
+    // rescale kinetic energy via velocities if move is accepted
     // velocity rescaling not needed in RESTMD under homogeneous temperature control
-    if (swap) scale_velocities(partner_set_temp,my_set_temp);
+
+    //if (swap) scale_velocities(partner_set_temp,my_set_temp);
 
     // if my world swapped, all procs in world reset temp target of Fix
 

@@ -44,11 +44,14 @@ class TemperSTMD : protected Pointers {
   int fixstyle;                // what kind of temperature fix is used
   int bin, Emin, Emax, BinMin, BinMax;
   double T_me,T_partner;
-  int current_STG;
+  int current_STG, N_me;
+  int EX_flag;                 // controlls if swap is turned OFF/ON
   //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating
-  double *set_temp;            // static list of replica set temperatures
+  double *set_temp;            // static list of replica set kinetic temperatures
+  double *local_values;        // list of Y2, Emin and Emax
+  double *local_values_partner;       // list of replica local values
   int *temp2world;             // temp2world[i] = world simulating set temp i
   int *world2temp;             // world2temp[i] = temp simulated by world i
   int *world2root;             // world2root[i] = root proc of world i
@@ -112,5 +115,9 @@ explicitly deleted by a uncompute command.
 E: Bin size not the same
 
 The bin size for temper and fix_stmd is not the same in the input file.
+
+E: Kinetic temperatures not the same, use homogeneous temperature control
+
+This version uses homogeneous temperature control (HK) for the kinetic temperature in each replica. Review http://dx.doi.org/10.1021/jp300366j for details.
 
 */
