@@ -54,8 +54,9 @@ private:
   // arguments of fix; these variables were initialized in charmm.inp
 
   //  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
-  int RSTFRQ, PRNFRQ, TSC1, TSC2, OREST;
-  int RE_flag;
+  int RSTFRQ, PRNFRQ, TSC1, TSC2;
+  int OREST; // 0 for new run, 1 for restart
+  int RE_flag; // Determines if f is reduced by HCHK() (RE_flag == 0) or by constant TSC2 (RE_flag == 1)
 
   double initf, Emin, Emax;
   char dir_output[256]; // optional argument for output directory

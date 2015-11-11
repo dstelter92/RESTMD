@@ -45,7 +45,7 @@ class TemperSTMD : protected Pointers {
   int bin, Emin, Emax, BinMin, BinMax;
   double T_me,T_partner;
   int current_STG, N_me;
-  int EX_flag;                 // controlls if swap is turned OFF/ON
+  int EX_flag;                 // controlls if swap is turned OFF/ON (0/1)
   //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating
