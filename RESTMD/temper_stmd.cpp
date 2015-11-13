@@ -42,7 +42,8 @@
 
 using namespace LAMMPS_NS;
 
-#define TEMPER_DEBUG 1
+#define TEMPER_DEBUG 0
+#define EX_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -141,8 +142,8 @@ void TemperSTMD::command(int narg, char **arg )
   //int nlocal_values_partner = fix_stmd->N + 2;
 
   double *local_values = local_values_partner = NULL;
-  memory->create(local_values,nlocal_values,"local_values");
-  memory->create(local_values_partner,nlocal_values,"local_values_partner");
+  memory->create(local_values,nlocal_values,"restmd:local_values");
+  memory->create(local_values_partner,nlocal_values,"restmd:local_values_partner");
 
   // pe_compute = ptr to thermo_pe compute
   // notify compute it will be called at first swap
@@ -346,40 +347,65 @@ void TemperSTMD::command(int narg, char **arg )
     MPI_Bcast(&swap,1,MPI_INT,0,world);
 
     // get information that is being swapped, pack into local_values, send, and receive as local_values_partner
-/*
-    if (swap) {
-        for(int i=0; i<N_me; i++) local_values[i] = fix_stmd->Y2[i];
-        local_values[N_me+1] = fix_stmd->TL;
-        local_values[N_me+2] = fix_stmd->TH;
 
+    if (swap) {
+        
+        // pack values later
+        //for(int i=0; i<N_me; i++) local_values[i] = fix_stmd->Y2[i];
+        //local_values[N_me+1] = fix_stmd->TL;
+        //local_values[N_me+2] = fix_stmd->TH;
+        double TLa = fix_stmd->TL;
+        double THa = fix_stmd->TH;
+        double TLb,THb;
+
+        // get values from partner, probably not necessary in final version
+        if (partner != -1) {
+            if (me_universe > partner) {
+                MPI_Send(&TLa,1,MPI_DOUBLE,partner,0,universe->uworld);
+                MPI_Send(&THa,1,MPI_DOUBLE,partner,0,universe->uworld);
+            }
+            else {
+                MPI_Recv(&TLb,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+                MPI_Recv(&THb,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+            }
+        }
+        
         int recv_tag = 0;
         int send_tag = 1;
         
-#ifdef TEMPER_DEBUG
+#ifdef EX_DEBUG
         if (me_universe < partner) {
-            printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+            //printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+            printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",TLa,THa,TLb,THb);
         }
 #endif
-
+/*
         //MPI_Sendrecv(&(local_values[0]),N_me+2,MPI_DOUBLE,partner,send_tag,&(local_values_partner[0]),N_me+2,MPI_DOUBLE,partner,recv_tag,universe->uworld,&status);
-
+        if (partner != -1) {
+            if (me_universe > partner) {
+                MPI_Sendrecv(&TLa,1,MPI_DOUBLE,partner,send_tag,&TLb,1,MPI_DOUBLE,partner,recv_tag,universe->uworld,&status);
+            }
+        }
+*/        
         // swap values...
-        
+        /*
         for(int i=0; i<N_me; i++) fix_stmd->Y2[i] = local_values_partner[i];
         fix_stmd->TL = local_values_partner[N_me+1];
         fix_stmd->TH = local_values_partner[N_me+2];
+        */
 
-#ifdef TEMPER_DEBUG
+#ifdef EX_DEBUG
         if (me_universe < partner) {
-            printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+            //printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
+            printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",TLa,THa,TLb,THb);
         }
 #endif
 
 
         //if (me == 0) MPI_Allgather(local_values, nlocal_values, MPI_DOUBLE, global_values, nglobal_values, MPI_DOUBLE, roots);
         //MPI_Bcast(global_values,nglobal_values,MPI_DOUBLE,0,world);        
-    }
-*/
+    } // if swap
+
 
     // rescale kinetic energy via velocities if move is accepted
     // velocity rescaling not needed in RESTMD under homogeneous temperature control

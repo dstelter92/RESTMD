@@ -680,7 +680,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // STG3 START: Check histogram and further reduce f until <= 1.0000001
   if(STG >= 3) {
     m = istep % TSC2;
-    if((m == 0) && (nworlds == 1)) { // STMD, reduce f based on histogram check
+    if((m == 0) && (RE_flag == 0)) { // STMD, reduce f based on histogram check
       // production_phase = 1;
 
       if(stmd_logfile) fprintf(logfile,"STMD STAGE 3\nSTMD STG3 CHK HIST istep= %i  TSC2= %i\n",istep,TSC2);
@@ -719,7 +719,7 @@ void FixSTMD::MAIN(int istep, double potE)
 				       CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
 	fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (nworlds == 1))
+    } // if((m == 0) && (RE_flag == 0))
 
     if((m == 0) && (RE_flag == 1)) { // RESTMD, reduce f to sqrt(f) every TSC2 steps
       if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
@@ -749,7 +749,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // If STMD, run until histogram is flat, then reduce f value until <= 1.000001, else if RESTMD, reduce every TSC2 steps
   if(STG == 2) {
     m = istep % TSC2;
-    if((m == 0) && (nworlds == 1)) { // If STMD...
+    if((m == 0) && (RE_flag == 0)) { // If STMD...
       if(stmd_logfile) fprintf(logfile,"STMD STAGE 2\nSTMD STG2: CHK HIST istep= %i  TSC2= %i\n",istep,TSC2);
       HCHK();
       if(stmd_logfile) fprintf(logfile,"STMD STG2: SWfold= %i SWf= %i\n",SWfold,SWf);
@@ -785,7 +785,7 @@ void FixSTMD::MAIN(int istep, double potE)
 	CountH = 0;
       }
       
-    } // if((m == 0) && (nworlds == 1)) 
+    } // if((m == 0) && (RE_flag == 0))
 
     if((m == 0) && (RE_flag == 1)) { // If RESTMD...
         if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
