@@ -51,6 +51,7 @@ class TemperSTMD : protected Pointers {
   int my_set_temp;             // which set temp I am simulating
   double *set_temp;            // static list of replica set kinetic temperatures
   double *local_values;        // list of Y2, Emin and Emax
+  double *global_values;       // global list of all local_values
   double *local_values_partner;       // list of replica local values
   int *temp2world;             // temp2world[i] = world simulating set temp i
   int *world2temp;             // world2temp[i] = temp simulated by world i

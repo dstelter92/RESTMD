@@ -42,7 +42,7 @@
 
 using namespace LAMMPS_NS;
 
-#define TEMPER_DEBUG 0
+//#define TEMPER_DEBUG 1
 #define EX_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
@@ -138,11 +138,14 @@ void TemperSTMD::command(int narg, char **arg )
   boltz = force->boltz;
 
   // Setup Swap information
-  int nlocal_values = fix_stmd->N + 2; // length of Y2 array + {TL and TH}
+  int nlocal_values = fix_stmd->N + 2; // length of Y2 array + {TL and TH} + extra?
+  int nglobal_values = nlocal_values * (nworlds);
   //int nlocal_values_partner = fix_stmd->N + 2;
 
-  double *local_values = local_values_partner = NULL;
+  double *local_values = global_values = NULL;
+  double *local_values_partner = NULL;
   memory->create(local_values,nlocal_values,"restmd:local_values");
+  memory->create(global_values,nglobal_values,"restmd:global_values");
   memory->create(local_values_partner,nlocal_values,"restmd:local_values_partner");
 
   // pe_compute = ptr to thermo_pe compute
@@ -346,66 +349,61 @@ void TemperSTMD::command(int narg, char **arg )
 
     MPI_Bcast(&swap,1,MPI_INT,0,world);
 
-    // get information that is being swapped, pack into local_values, send, and receive as local_values_partner
+    // get information that is being swapped, pack into local_values, gather, then bcast to all worlds
+        
+    // all procs pack values for walker into local array
+    for(int i=0; i<fix_stmd->N; i++) local_values[i] = fix_stmd->Y2[i];
+    local_values[fix_stmd->N] = fix_stmd->TL;
+    local_values[fix_stmd->N+1] = fix_stmd->TH;
+
 
     if (swap) {
-        
-        // pack values later
-        //for(int i=0; i<N_me; i++) local_values[i] = fix_stmd->Y2[i];
-        //local_values[N_me+1] = fix_stmd->TL;
-        //local_values[N_me+2] = fix_stmd->TH;
-        double TLa = fix_stmd->TL;
-        double THa = fix_stmd->TH;
-        double TLb,THb;
-
-        // get values from partner, probably not necessary in final version
-        if (partner != -1) {
-            if (me_universe > partner) {
-                MPI_Send(&TLa,1,MPI_DOUBLE,partner,0,universe->uworld);
-                MPI_Send(&THa,1,MPI_DOUBLE,partner,0,universe->uworld);
-            }
-            else {
-                MPI_Recv(&TLb,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
-                MPI_Recv(&THb,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
-            }
-        }
-        
-        int recv_tag = 0;
-        int send_tag = 1;
-        
-#ifdef EX_DEBUG
-        if (me_universe < partner) {
-            //printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
-            printf("Pre-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",TLa,THa,TLb,THb);
-        }
-#endif
-/*
-        //MPI_Sendrecv(&(local_values[0]),N_me+2,MPI_DOUBLE,partner,send_tag,&(local_values_partner[0]),N_me+2,MPI_DOUBLE,partner,recv_tag,universe->uworld,&status);
-        if (partner != -1) {
-            if (me_universe > partner) {
-                MPI_Sendrecv(&TLa,1,MPI_DOUBLE,partner,send_tag,&TLb,1,MPI_DOUBLE,partner,recv_tag,universe->uworld,&status);
-            }
-        }
-*/        
-        // swap values...
-        /*
-        for(int i=0; i<N_me; i++) fix_stmd->Y2[i] = local_values_partner[i];
-        fix_stmd->TL = local_values_partner[N_me+1];
-        fix_stmd->TH = local_values_partner[N_me+2];
-        */
 
 #ifdef EX_DEBUG
         if (me_universe < partner) {
-            //printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",local_values[N_me+1],local_values[N_me+2],local_values_partner[N_me+1],local_values_partner[N_me+2]);
-            printf("Post-swap, TLa= %f THa= %f, TLb= %f THb= %f \n",TLa,THa,TLb,THb);
+            printf("Exchange Info, print out %d local_values before swap: ",nlocal_values);
+            for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
+            printf("\n");
         }
 #endif
 
-
-        //if (me == 0) MPI_Allgather(local_values, nlocal_values, MPI_DOUBLE, global_values, nglobal_values, MPI_DOUBLE, roots);
-        //MPI_Bcast(global_values,nglobal_values,MPI_DOUBLE,0,world);        
     } // if swap
 
+    
+    // Gather all local_values from replicas
+    if (me == 0) MPI_Allgather(local_values,nlocal_values,MPI_DOUBLE,global_values,nlocal_values,MPI_DOUBLE,roots);
+
+    // Share global_values with universe
+    MPI_Bcast(global_values,nglobal_values,MPI_DOUBLE,0,world);
+
+        
+    if (swap) {
+
+        // Swap values and unpack from global_values
+        const int indx = partner_world*nlocal_values;
+        memcpy(&local_values[0],&global_values[indx],nlocal_values*sizeof(double));
+
+        /*
+        if (me_universe == 0) {
+            printf("test, print out global_values, indx=%d: ",indx);
+            for(int i=0; i<nglobal_values; i++) printf("%f ",global_values[i]);
+            printf("\n");
+        }
+        */
+
+        // update fix_stmd with swapped values
+
+        
+#ifdef EX_DEBUG
+        if (me_universe < partner) {
+            printf("Exchange Info, print out %d local_values after swap: ",nlocal_values);
+            for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
+            printf("\n");
+        }
+#endif
+
+    } // if swap
+        
 
     // rescale kinetic energy via velocities if move is accepted
     // velocity rescaling not needed in RESTMD under homogeneous temperature control
