@@ -43,7 +43,7 @@
 using namespace LAMMPS_NS;
 
 //#define TEMPER_DEBUG 1
-#define EX_DEBUG 1
+//#define EX_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -92,8 +92,6 @@ void TemperSTMD::command(int narg, char **arg )
   seed_boltz = force->inumeric(FLERR,arg[5]);
   EX_flag = atoi(arg[6]); //exchange flag, 0 if swap off (run many replicas without exchange), 1 if swap on.
 
-  N_me = fix_stmd->N;
-
   // Mess with something to see change in log file
   //bin = fix_stmd->bin;
   //if (fix_stmd->bin != bin)
@@ -140,13 +138,10 @@ void TemperSTMD::command(int narg, char **arg )
   // Setup Swap information
   int nlocal_values = fix_stmd->N + 2; // length of Y2 array + {TL and TH} + extra?
   int nglobal_values = nlocal_values * (nworlds);
-  //int nlocal_values_partner = fix_stmd->N + 2;
 
   double *local_values = global_values = NULL;
-  double *local_values_partner = NULL;
   memory->create(local_values,nlocal_values,"restmd:local_values");
   memory->create(global_values,nglobal_values,"restmd:global_values");
-  memory->create(local_values_partner,nlocal_values,"restmd:local_values_partner");
 
   // pe_compute = ptr to thermo_pe compute
   // notify compute it will be called at first swap
@@ -392,6 +387,9 @@ void TemperSTMD::command(int narg, char **arg )
         */
 
         // update fix_stmd with swapped values
+        for(int i=0; i<fix_stmd->N; i++) fix_stmd->Y2[i] = local_values[i];
+        fix_stmd->TL = local_values[fix_stmd->N];
+        fix_stmd->TH = local_values[fix_stmd->N+1];
 
         
 #ifdef EX_DEBUG

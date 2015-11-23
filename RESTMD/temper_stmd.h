@@ -44,15 +44,13 @@ class TemperSTMD : protected Pointers {
   int fixstyle;                // what kind of temperature fix is used
   int bin, Emin, Emax, BinMin, BinMax;
   double T_me,T_partner;
-  int current_STG, N_me;
+  int current_STG;
   int EX_flag;                 // controlls if swap is turned OFF/ON (0/1)
-  //int * N, * N_partner;
 
   int my_set_temp;             // which set temp I am simulating
   double *set_temp;            // static list of replica set kinetic temperatures
   double *local_values;        // list of Y2, Emin and Emax
   double *global_values;       // global list of all local_values
-  double *local_values_partner;       // list of replica local values
   int *temp2world;             // temp2world[i] = world simulating set temp i
   int *world2temp;             // world2temp[i] = temp simulated by world i
   int *world2root;             // world2root[i] = root proc of world i
