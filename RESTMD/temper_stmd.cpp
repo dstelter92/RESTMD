@@ -42,8 +42,8 @@
 
 using namespace LAMMPS_NS;
 
-//#define TEMPER_DEBUG 1
-//#define EX_DEBUG 1
+#define TEMPER_DEBUG 1
+#define EX_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
 
@@ -72,7 +72,7 @@ void TemperSTMD::command(int narg, char **arg )
     error->all(FLERR,"Must have more than one processor partition to temper");
   if (domain->box_exist == 0)
     error->all(FLERR,"Temper command before simulation box is defined");
-  if (narg != 6 && narg != 7)
+  if (narg != 7 && narg != 8)
     error->universe_all(FLERR,"Illegal temper command");
 
   int nsteps = force->inumeric(FLERR,arg[0]);
@@ -332,7 +332,7 @@ void TemperSTMD::command(int narg, char **arg )
 
         
 #ifdef TEMPER_DEBUG
-      if (me_universe < partner) {
+      if ((me_universe < partner) && (universe->uscreen)) {
         printf("SWAP %d & %d: yes = %d, T = %d %d, PEs = %g %g, Bz = %g %g rand = %g\n",me_universe,partner,swap,my_set_temp,partner_set_temp,pe,pe_partner,boltz_factor,exp(boltz_factor),ranboltz->uniform());
         printf("RESTMD: N = %d, STG = %d, T_s = %f %f, f = %f\n",fix_stmd->N,current_STG,T_me,T_partner,fix_stmd->f);
       }
@@ -355,7 +355,7 @@ void TemperSTMD::command(int narg, char **arg )
     if (swap) {
 
 #ifdef EX_DEBUG
-        if (me_universe < partner) {
+        if ((me_universe < partner) && (universe->uscreen)) {
             printf("Exchange Info, print out %d local_values before swap: ",nlocal_values);
             for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
             printf("\n");
@@ -393,7 +393,7 @@ void TemperSTMD::command(int narg, char **arg )
 
         
 #ifdef EX_DEBUG
-        if (me_universe < partner) {
+        if ((me_universe < partner) && (universe->uscreen)) {
             printf("Exchange Info, print out %d local_values after swap: ",nlocal_values);
             for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
             printf("\n");
