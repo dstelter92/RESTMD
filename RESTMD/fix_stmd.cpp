@@ -92,8 +92,17 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   PRNFRQ = atoi(arg[13]);
   RE_flag = atoi(arg[14]);
   OREST  = atoi(arg[15]); // 0 for new run, 1 for restart
-  if(narg == 17) strcpy(dir_output,arg[16]);
-  else strcpy(dir_output,"./");
+  
+  // If RESTMD, check with temper_stmd to ensure walkers are the same.
+  // Do this in temper_stmd...
+  me_temp = universe->iworld;
+  if (narg == 17) me_temp = force->inumeric(FLERR,arg[16]);
+  
+  
+  // Make dir_output hard coded to local dir
+  strcpy(dir_output,"./");
+  //if(narg == 18) strcpy(dir_output,arg[17]);
+  //else strcpy(dir_output,"./");
   
   //Elist = NULL;
   
@@ -398,6 +407,7 @@ void FixSTMD::init()
 
           if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
           //if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
+          if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
 
           memory->destroy(list);
     }

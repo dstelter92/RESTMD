@@ -49,6 +49,7 @@ class FixSTMD : public Fix {
 public:
   int bin, STG, N;
   double T, ST, f, TL, TH;
+  int me_temp;
   
 private:
   // arguments of fix; these variables were initialized in charmm.inp

@@ -103,6 +103,10 @@ void TemperSTMD::command(int narg, char **arg )
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
 
+  // Check my_set_temp vs me_temp in fix_stmd, should be same
+  if (fix_stmd->me_temp != my_set_temp)
+      error->universe_all(FLERR,"Wrong input file read into STMD fix");
+
   // swap frequency must evenly divide total # of timesteps
 
   if (nevery == 0)
@@ -204,7 +208,7 @@ void TemperSTMD::command(int narg, char **arg )
 
   // setup tempering runs
 
-  int i,which,partner,swap,partner_set_temp,partner_world;
+  int which,partner,swap,partner_set_temp,partner_world;
   double pe,pe_partner,boltz_factor,new_temp;
   MPI_Status status;
 
@@ -423,7 +427,7 @@ void TemperSTMD::command(int narg, char **arg )
     if (swap) my_set_temp = partner_set_temp;
     if (me == 0) {
       MPI_Allgather(&my_set_temp,1,MPI_INT,world2temp,1,MPI_INT,roots);
-      for (i = 0; i < nworlds; i++) temp2world[world2temp[i]] = i;
+      for (int i=0; i<nworlds; i++) temp2world[world2temp[i]] = i;
     }
     MPI_Bcast(temp2world,nworlds,MPI_INT,0,world);
 
