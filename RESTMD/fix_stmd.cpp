@@ -64,7 +64,7 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
 
   global_freq = 1;
   scalar_flag = 1;
@@ -95,8 +95,8 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   
   // If RESTMD, check with temper_stmd to ensure walkers are the same.
   // Do this in temper_stmd...
-  me_temp = universe->iworld;
-  if (narg == 17) me_temp = force->inumeric(FLERR,arg[16]);
+  //me_temp = universe->iworld;
+  //if (narg == 17) me_temp = force->inumeric(FLERR,arg[16]);
   
   
   // Make dir_output hard coded to local dir
@@ -407,7 +407,7 @@ void FixSTMD::init()
 
           if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
           //if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
-          if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
+          //if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
 
           memory->destroy(list);
     }
