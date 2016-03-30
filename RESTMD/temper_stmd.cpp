@@ -104,8 +104,9 @@ void TemperSTMD::command(int narg, char **arg )
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
 
   // Check my_set_temp vs me_temp in fix_stmd, should be same
-  if (fix_stmd->me_temp != my_set_temp)
-      error->universe_all(FLERR,"Wrong input file read into STMD fix");
+  // This is checked when oREST.*.d is read into fix_stmd
+  //if (fix_stmd->me_temp != my_set_temp)
+  //    error->universe_all(FLERR,"Wrong input file read into STMD fix");
 
   // swap frequency must evenly divide total # of timesteps
 
