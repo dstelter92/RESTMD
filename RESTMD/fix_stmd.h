@@ -48,7 +48,7 @@ class FixSTMD : public Fix {
   // else as private.
 public:
   int bin, STG, N;
-  double T, ST, f, TL, TH;
+  double T, ST, f, T1, T2;
   int me_temp;
   
 private:
@@ -75,7 +75,7 @@ private:
   int SWf, Count, CountH, totC, totCi, SWchk, CountPH, SWfold;
 
   double * Elist;
-  double df, T0, T1, T2, CTmin, CTmax, scaleT;
+  double df, T0, TL, TH, CTmin, CTmax, scaleT;
   double Gamma;
 
   double * Y1, * Prob;

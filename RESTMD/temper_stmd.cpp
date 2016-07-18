@@ -353,17 +353,18 @@ void TemperSTMD::command(int narg, char **arg )
         
     // all procs pack values for walker into local array
     for(int i=0; i<fix_stmd->N; i++) local_values[i] = fix_stmd->Y2[i];
-    local_values[fix_stmd->N] = fix_stmd->TL;
-    local_values[fix_stmd->N+1] = fix_stmd->TH;
+    local_values[fix_stmd->N] = fix_stmd->T1; //TLOW
+    local_values[fix_stmd->N+1] = fix_stmd->T2; //THIGH
 
 
     if (swap) {
 
 #ifdef EX_DEBUG
         if ((me_universe < partner) && (universe->uscreen)) {
-            printf("Exchange Info, print out %d local_values before swap: ",nlocal_values);
-            for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
-            printf("\n");
+            //printf("Exchange Info, print out %d local_values before swap: ",nlocal_values);
+            //for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
+            //printf("\n");
+            printf("TL: %f, TH: %f \n", fix_stmd->T1*temp, fix_stmd->T2*temp);
         }
 #endif
 
@@ -393,15 +394,16 @@ void TemperSTMD::command(int narg, char **arg )
 
         // update fix_stmd with swapped values
         for(int i=0; i<fix_stmd->N; i++) fix_stmd->Y2[i] = local_values[i];
-        fix_stmd->TL = local_values[fix_stmd->N];
-        fix_stmd->TH = local_values[fix_stmd->N+1];
+        fix_stmd->T1 = local_values[fix_stmd->N];
+        fix_stmd->T2 = local_values[fix_stmd->N+1];
 
         
 #ifdef EX_DEBUG
         if ((me_universe < partner) && (universe->uscreen)) {
-            printf("Exchange Info, print out %d local_values after swap: ",nlocal_values);
-            for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
-            printf("\n");
+            //printf("Exchange Info, print out %d local_values after swap: ",nlocal_values);
+            //for(int i=0; i<nlocal_values; i++) printf("%f ",local_values[i]);
+            //printf("\n");
+            printf("TL: %f, TH: %f \n", fix_stmd->T1*temp, fix_stmd->T2*temp);
         }
 #endif
 
