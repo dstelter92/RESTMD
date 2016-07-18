@@ -10,6 +10,6 @@ TO DO:
 [x] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp [9-30-15]
 [x] Check velocity rescaling, verify acceptance criteria
 [x] Ensure swaps take place correctly
-[ ] Benchmark algorithm
+[x] Benchmark algorithm, http://i.imgur.com/Zx1QBLw.png
 
 Thu Oct  8 12:01:17 EDT 2015
