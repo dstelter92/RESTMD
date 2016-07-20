@@ -131,6 +131,7 @@ FixSTMD::~FixSTMD()
   memory->destroy(PROH);
   memory->destroy(Prob);
   
+  /*
   if(comm->me == 0) {
     fclose(fp_wtnm);
     fclose(fp_whnm);
@@ -138,6 +139,7 @@ FixSTMD::~FixSTMD()
     fclose(fp_wenm);
     fclose(fp_orest);
   }
+  */
 }
 
 /* ---------------------------------------------------------------------- */

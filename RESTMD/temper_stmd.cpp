@@ -17,9 +17,9 @@
    Modified for RESTMD by David Stelter (BU) and Chris Knight (ANL)
 ------------------------------------------------------------------------- */
 
-#include "math.h"
-#include "stdlib.h"
-#include "string.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 #include "temper_stmd.h"
 #include "universe.h"
 #include "domain.h"
@@ -42,7 +42,7 @@
 
 using namespace LAMMPS_NS;
 
-#define TEMPER_DEBUG 1
+//#define TEMPER_DEBUG 1
 #define EX_DEBUG 1
 
 /* ---------------------------------------------------------------------- */
@@ -201,17 +201,17 @@ void TemperSTMD::command(int narg, char **arg )
   MPI_Bcast(temp2world,nworlds,MPI_INT,0,world);
 
   // if restarting tempering, reset temp target of Fix to current my_set_temp
-
+  /*
   if (narg == 8) {
     double new_temp = set_temp[my_set_temp];
     modify->fix[whichfix]->reset_target(new_temp);
   }
+  */
 
   // setup tempering runs
 
   int which,partner,swap,partner_set_temp,partner_world;
-  double pe,pe_partner,boltz_factor,new_temp;
-  MPI_Status status;
+  double pe,pe_partner,boltz_factor;//,new_temp;
 
   if (me_universe == 0 && universe->uscreen)
     fprintf(universe->uscreen,"Setting up tempering ...\n");
@@ -314,8 +314,8 @@ void TemperSTMD::command(int narg, char **arg )
         MPI_Send(&T_me,1,MPI_DOUBLE,partner,0,universe->uworld);
       }
       else {
-        MPI_Recv(&pe_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
-        MPI_Recv(&T_partner,1,MPI_DOUBLE,partner,0,universe->uworld,&status);
+        MPI_Recv(&pe_partner,1,MPI_DOUBLE,partner,0,universe->uworld,MPI_STATUS_IGNORE);
+        MPI_Recv(&T_partner,1,MPI_DOUBLE,partner,0,universe->uworld,MPI_STATUS_IGNORE);
       }
 
       if (me_universe < partner) {
@@ -330,7 +330,7 @@ void TemperSTMD::command(int narg, char **arg )
       if (me_universe < partner)
         MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld);
       else
-        MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,&status);
+        MPI_Recv(&swap,1,MPI_INT,partner,0,universe->uworld,MPI_STATUS_IGNORE);
 
       if (EX_flag == 0) swap = 0; //If 0, exchanges turned off
 
@@ -416,11 +416,12 @@ void TemperSTMD::command(int narg, char **arg )
     //if (swap) scale_velocities(partner_set_temp,my_set_temp);
 
     // if my world swapped, all procs in world reset temp target of Fix
-
+    /*
     if (swap) {
       new_temp = set_temp[partner_set_temp];
       modify->fix[whichfix]->reset_target(new_temp);
     }
+    */
 
     // update my_set_temp and temp2world on every proc
     // root procs update their value if swap took place
