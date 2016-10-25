@@ -1,8 +1,8 @@
-Replica Exchange Statistical-Temperature Molecular Dynamics
+#Replica Exchange Statistical-Temperature Molecular Dynamics
 
-via modification of temper module in LAMMPS.
+####via modification of temper module in LAMMPS.
 
-TO DO:
+###TO DO:
 [x] Make STMD restart [6-30-15]
 {x] Add universe variable to each *.d file created by fix_stmd.cpp [7-2-15]
 [x] Add any necessary RESTMD restart information to oREST.d and iREST.d [9-30-15]
@@ -13,6 +13,106 @@ TO DO:
 [x] Clean out input/output for use by others
 [ ] Create Documentation...
 [ ] Prepare for LAMMPS release, last bugchecks!
+
+##Documentation
+
+###Syntax (STMD)
+>fix        ID all stmd RSTFRQ f T1 T2 U1 U2 bin TSC1 TSC2 T0 PRTFRQ RE_flag OREST
+
+- ID, User-assigned name for the fix
+- all, STMD must be applied to 'all' atoms
+- stmd, Style name of this fix command
+- RSTFRQ, How often external STMD restart file is written
+- f, Initial modification value used by the system
+- T1, Low temperature cutoff
+- T2, High temperature cutoff
+- U1, Low energy cutoff
+- U2, High energy cutoff
+- bin, Size of energy bins
+- TSC1, How often to dig during Stage 1
+- TSC2, Controls f-reduction schemes
+- T0, Kinetic temperature as specified by thermostat
+- PRTFRQ, How often to print Ts(U) and H(U) to external files
+- RE_flag, Controls reduction scheme of f, must be 0 or 1
+- OREST, Write new restart or read existing restart, must be 0 or 1
+
+
+###Syntax (RESTMD)
+>restmd     N M T0 fix-ID seed1 seed2 EX_flag walkers
+
+- N, total # of timesteps to run
+- M, attempt exchange this many steps
+- T0, kinetic temperature as specified by thermostat
+- fix-ID, ID of STMD fix as chosen by user, must be used with STMD
+- seed1, random # seed to decide on adjacent replica to swap with
+- seed2, random # seed for Boltzmann factor in Metropolis swap
+- EX_flag, Controls if exchanges occur, must be 0 or 1
+- walkers, list of walkers, specified with a 'world' variable
+
+###Examples
+>fix        fixstmd all stmd 10000 2.0 200 400 -300000 -100000 1024 10000 2500000 323 10000 1 0
+>
+>
+>fix        fixstmd all stmd 10000 2.0 ${T1} ${T2} -300000 -100000 1024 10000 2500000 323 10000 1 1
+>restmd     200000 10000 323 fxstmd 0 28412 1 ${w}
+
+###Description
+RESTMD requires both the STMD fix and the restmd command to function. 
+A single replica of STMD can be run using just the fix, and the normal 'run' command in LAMMPS. 
+To use the restmd command, two or more replicas must be used in 'partition-mode'. 
+
+######For STMD: 
+The fix requires specification of an initial f-value. 
+Once initially used in the simulation, if using the external restart files, it no longer needs to be changed in the LAMMPS input file. 
+It can be changed by modifing the 2nd line of the oREST.*.d file. 
+STMD handles the reduction of the f-value to unity in two ways as specified by RE_flag. 
+When RE_flag=0, flatness of the sampled histogram is checked every TSC2 steps as per Wang-Landau sampling.
+When RE_flag=1, the f-value is reduced constantly, every TSC2. This is used with multiple replicas to ensure that each walker has the same f-value. 
+
+T1 and T2 specify the lower and upper cutoffs for the sampled temperature region.
+Similarly, U1 and U2 specify the lower and uper energy cutoffs.
+U1 must be lower than the minimum energy sampled by T1 and visa versa.
+It is generally good practice to setup a STMD run using two canonical simulations at T1 and T2.
+To get U1 and U2, simply guess by lowering the energy sampled at T1 by ~10% and visa versa.
+
+TSC1 controls the dig proceedure. Starting an STMD simulation, a guess for T(E) is needed. 
+Dig finds a starting guess starting at with T(U) = T2, and then simulating with a high f-value. 
+Whenever a T < T2 is sampled, T(U) at energy less than the sampled bin is changed to the sampled T.
+TSC1 is the time constant controlling how frequently dig is initiated.
+
+In multicanonical simluations, the kinetic temperature, derived from the motion of particles and controlled by the thermostat, is independent of which states are sampled.
+Here, T0 is controlled by the any thermostat, but must be set to a constant value. 
+Typically, a higher value T0 is better as that leads towards faster motion and hence more efficient sampling.
+
+OREST controls if a restart file should be created, or read.
+A value of 0 means a new file will be created, this is usefull for starting new STMD simulations. 
+A value of 1 means an existing file will be read, it must have the proper format:
+
+> stage
+> f-value
+> Hcount
+> Swf
+> SWfold
+> SWchk
+> Count
+> totCi
+> CountPH
+> T1
+> T2
+> CTmin
+> CTmax
+> T(U) array
+> H(U) array
+> Production H(U) array
+
+As many of these values are technical and detailed, it is usualy easiest to have LAMMPS create the restart file for you. 
+Usually only modification of the first three parameters, stage, f-value, and Hcount is needed.
+
+
+
+######For RESTMD
+
+
 
 
 
