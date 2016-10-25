@@ -65,8 +65,8 @@ private:
   // other variables initialized in stmd.f::stmdcntrl()
   int MODI;
 
-  char filename_wtnm[256], filename_whnm[256], filename_whpnm[256], filename_wresnm[256], filename_iresnm[256], filename_wenm[256], filename_orest[256], filename_irest[256];
-  FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_wresnm, * fp_iresnm, * fp_wenm, * fp_orest, * fp_irest;
+  char filename_wtnm[256], filename_whnm[256], filename_whpnm[256], filename_orest[256];
+  FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
   double CutTmin, CutTmax, finFval, pfinFval, HCKtol, multi, dymT;
   int QREST, QEXPO, QEXP1;

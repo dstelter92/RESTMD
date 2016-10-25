@@ -90,7 +90,7 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   TSC2   = atof(arg[11]);
   ST     = atof(arg[12]); // This value should be consistent with target temperature of thermostat fix
   PRNFRQ = atoi(arg[13]);
-  RE_flag = atoi(arg[14]);
+  RE_flag = atoi(arg[14]); // 0 for hckh() to reduce f-val, 1 for constant reduction
   OREST  = atoi(arg[15]); // 0 for new run, 1 for restart
   
   // If RESTMD, check with temper_stmd to ensure walkers are the same.
@@ -115,7 +115,7 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   // Hard-coded for verbose output
   //  stmd_debug = 1;
 
-  fp_wtnm = fp_whnm = fp_whpnm = fp_wenm = fp_orest = fp_irest = NULL;
+  fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -196,6 +196,7 @@ void FixSTMD::init()
       fp_whpnm = fopen(filename,"w");
     }
 
+    /*
     if(!fp_wenm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WE.");
@@ -204,6 +205,7 @@ void FixSTMD::init()
       strcpy(filename_wenm,filename);
       fp_wenm  = fopen(filename,"w");
     }
+    */
     if( (!fp_orest) && (!OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/oREST.");
@@ -220,6 +222,7 @@ void FixSTMD::init()
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"r+");
     }
+    /*
     if( (!fp_irest) && (OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/iREST.");
@@ -228,6 +231,7 @@ void FixSTMD::init()
         strcpy(filename_irest,filename);
         fp_irest  = fopen(filename,"w");
     }
+    */
   }
 
   // filename_wresnm = (char *) strcat(dir_output, "/restartOUT.d"); // Should probably just store restart info in LAMMPS binary restart
@@ -361,7 +365,8 @@ void FixSTMD::init()
   if(OREST) { // Read oREST.d into variables
       if(comm->me == 0) {
           int k = 0;
-          int nsize = N + 21 + 1;
+          int numb = 13;
+          int nsize = 3*N + numb;
           double *list;
           memory->create(list,nsize,"stmd:list");
           //double list[nsize];
@@ -377,37 +382,45 @@ void FixSTMD::init()
           }
 
           //fprintf(fp_irest,"STMD Input Restart Information\n");
+          /*
           for(int i=0; i<nsize; i++) {
               fprintf(fp_irest,"%f ",list[i]);
           }
           fprintf(fp_irest,"\n");
+          */
 
           //int nbins = static_cast<int> (list[k++]);
-          for (int i=0; i<N; i++) {
-              Y2[i] = list[k++];
-          }
           STG = static_cast<int> (list[k++]);
           f = list[k++];
-          df = list[k++];
+          CountH = static_cast<int> (list[k++]);
+          //df = list[k++];
           SWf = static_cast<int> (list[k++]);
           SWfold = static_cast<int> (list[k++]);
           SWchk = static_cast<int> (list[k++]);
           Count = static_cast<int> (list[k++]);
           totCi = static_cast<int> (list[k++]);
-          CountH = static_cast<int> (list[k++]);
           CountPH = static_cast<int> (list[k++]);
-          TSC1 = static_cast<int> (list[k++]);
-          TSC2 = static_cast<int> (list[k++]);
-          Gamma = list[k++];
-          T0 = list[k++];
-          ST = list[k++];
+          //TSC1 = static_cast<int> (list[k++]);
+          //TSC2 = static_cast<int> (list[k++]);
+          //Gamma = list[k++];
+          //T0 = list[k++];
+          //ST = list[k++];
           T1 = list[k++];
           T2 = list[k++];
           CTmin = list[k++];
           CTmax = list[k++];
-          int oldiworld = list[k++];
+          //int oldiworld = list[k++];
+          for (int i=0; i<N; i++) {
+              Y2[i] = list[k++];
+          }
+          for (int i=0; i<N; i++) {
+              Htot[i] = list[k++];
+          }
+          for (int i=0; i<N; i++) {
+              PROH[i] = list[k++];
+          }
 
-          if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
+          //if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
           //if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
           //if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
 
@@ -683,8 +696,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // Hist Output
   int m = istep % PRNFRQ;
   if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_whnm,"%i %i %i %i %i %i %i %f\n",
-				   totCi, i, i*bin+Emin, Hist[i], Htot[i], CountH, totCi, f);
+    for(int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f\n", i, (i*bin)+Emin, Hist[i], Htot[i], Y2[i], CountH, totCi, f);
     fprintf(fp_whnm,"\n\n");
   }
 
@@ -727,8 +739,7 @@ void FixSTMD::MAIN(int istep, double potE)
       // Production run: Hist Output STMD
       m = istep % PRNFRQ;
       if( (m == 0) && (comm->me == 0) ) {
-	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",
-				       CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
+	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin, Hist[i], PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
 	fprintf(fp_whpnm,"\n\n");
       }
     } // if((m == 0) && (RE_flag == 0))
@@ -751,7 +762,7 @@ void FixSTMD::MAIN(int istep, double potE)
       // Production run: Hist Output RESTMD
       m = istep % PRNFRQ;
       if( (m == 0) && (comm->me == 0) ) {
-          for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %i %i %i %i %f %i %i %f\n",CountPH, i, i*bin+Emin, Hist[i], PROH[i], Y2[i], CountH, CountPH, f);
+          for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin+Emin), Hist[i], PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
           fprintf(fp_whpnm,"\n\n");
       }
     } // if((m == 0) && (RE_flag == 1))
@@ -844,8 +855,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // Yval output
   m = istep % PRNFRQ;
   if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_wtnm,"%i %i %i %f %f\n",
-				   totCi, i, i*bin+Emin, Y2[i], ST);
+    for(int i=0; i<N; i++) fprintf(fp_wtnm,"%i %f %f %f %i\n", i, (i*bin)+Emin, Y2[i]*ST, Y2[i], totCi);
     fprintf(fp_wtnm,"\n\n");
   }
 
@@ -856,34 +866,41 @@ void FixSTMD::MAIN(int istep, double potE)
   if( (r == 0) && (comm->me == 0) ) {
 
       int k = 0;
-      int nsize = N + 21;
+      int numb = 13;
+      int nsize = 3*N + numb;
       double *list;
       memory->create(list,nsize,"stmd:list");
 
       //list[k++] = N;
-      for (int i=0; i<N; i++) {
-          list[k++] = Y2[i];
-      }
       list[k++] = STG;
       list[k++] = f;
-      list[k++] = df;
+      list[k++] = CountH;
+      //list[k++] = df;
       list[k++] = SWf;
       list[k++] = SWfold;
       list[k++] = SWchk;
       list[k++] = Count;
       list[k++] = totCi;
-      list[k++] = CountH;
       list[k++] = CountPH;
-      list[k++] = TSC1;
-      list[k++] = TSC2;
-      list[k++] = Gamma;
-      list[k++] = T0;
-      list[k++] = ST;
+      //list[k++] = TSC1; // Control these by LAMMPS input file
+      //list[k++] = TSC2;
+      //list[k++] = Gamma;
+      //list[k++] = T0;
+      //list[k++] = ST;
       list[k++] = T1;
       list[k++] = T2;
       list[k++] = CTmin;
       list[k++] = CTmax;
-      list[k++] = iworld;
+      //list[k++] = iworld;
+      for (int i=0; i<N; i++) {
+          list[k++] = Y2[i];
+      }
+      for (int i=0; i<N; i++) {
+          list[k++] = Htot[i];
+      }
+      for (int i=0; i<N; i++) {
+          list[k++] = PROH[i];
+      }
       
 
       char filename[256];
@@ -895,7 +912,14 @@ void FixSTMD::MAIN(int istep, double potE)
       strcat(filename,".d");
       freopen(filename,"w",fp_orest);
       //fprintf(fp_orest,"STMD Output Restart Information, Step: %i, nbins: %i\n",istep,N);
-      for(int i=0; i<nsize; i++) fprintf(fp_orest,"%f ",list[i]);
+      for(int i=0; i<numb; i++) fprintf(fp_orest,"%f\n",list[i]);
+      for(int i=numb; i<N+numb; i++) fprintf(fp_orest,"%f ",list[i]);
+      fprintf(fp_orest,"\n");
+      for(int i=N+numb; i<2*N+numb; i++) fprintf(fp_orest,"%f ",list[i]);
+      fprintf(fp_orest,"\n");
+      for(int i=2*N+numb; i<nsize; i++) fprintf(fp_orest,"%f ",list[i]);
+      fprintf(fp_orest,"\n");
+
 
       memory->destroy(list);
   }
