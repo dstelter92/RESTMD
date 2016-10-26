@@ -103,11 +103,6 @@ void TemperSTMD::command(int narg, char **arg )
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
 
-  // Check my_set_temp vs me_temp in fix_stmd, should be same
-  // This is checked when oREST.*.d is read into fix_stmd
-  //if (fix_stmd->me_temp != my_set_temp)
-  //    error->universe_all(FLERR,"Wrong input file read into STMD fix");
-
   // swap frequency must evenly divide total # of timesteps
 
   if (nevery == 0)
@@ -214,7 +209,7 @@ void TemperSTMD::command(int narg, char **arg )
   double pe,pe_partner,boltz_factor;//,new_temp;
 
   if (me_universe == 0 && universe->uscreen)
-    fprintf(universe->uscreen,"Setting up tempering ...\n");
+    fprintf(universe->uscreen,"Setting up RESTMD ...\n");
 
   update->integrate->setup();
 

@@ -136,7 +136,6 @@ FixSTMD::~FixSTMD()
     fclose(fp_wtnm);
     fclose(fp_whnm);
     fclose(fp_whpnm);
-    fclose(fp_wenm);
     fclose(fp_orest);
   }
   */
@@ -166,6 +165,32 @@ void FixSTMD::init()
   // These are all other variables initialized in stmd.f::stmdcntrl()
   MODI    = 0; // Value of MODI never changes and only used in one spot
   // Initialization from stmd.f::stmdinitrans()
+
+  if(OREST) {
+    // Check if file exists/has data, otherwise exit!
+    char filename[256];
+    strcpy(filename,dir_output);
+    strcat(filename,"/oREST.");
+    strcat(filename,walker);
+    strcat(filename,".d");
+    strcpy(filename_orest,filename);
+
+    if (fp_orest = fopen(filename, "r")) {
+        fclose(fp_orest);
+    } else {
+        if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
+        else error->all(FLERR,"STMD: Restart file does not exist\n");
+    }
+
+    // check file not empty
+    std::ifstream file(filename);
+    if (file.peek() == std::ifstream::traits_type::eof()) {
+        if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file is empty\n");
+        else error->all(FLERR,"STMD: Restart file is empty\n");
+    }
+
+  }
+
   if(comm->me == 0) {
     char filename[256];
     
@@ -196,16 +221,7 @@ void FixSTMD::init()
       fp_whpnm = fopen(filename,"w");
     }
 
-    /*
-    if(!fp_wenm) {
-      strcpy(filename,dir_output);
-      strcat(filename,"/WE.");
-      strcat(filename,walker);
-      strcat(filename,".d");
-      strcpy(filename_wenm,filename);
-      fp_wenm  = fopen(filename,"w");
-    }
-    */
+
     if( (!fp_orest) && (!OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/oREST.");
@@ -214,14 +230,16 @@ void FixSTMD::init()
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"w");
     }
+
     if( (!fp_orest) && (OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/oREST.");
         strcat(filename,walker);
         strcat(filename,".d");
         strcpy(filename_orest,filename);
-        fp_orest  = fopen(filename,"r+");
+        fp_orest  = fopen(filename,"r");
     }
+
     /*
     if( (!fp_irest) && (OREST) ) {
         strcpy(filename,dir_output);
@@ -234,8 +252,6 @@ void FixSTMD::init()
     */
   }
 
-  // filename_wresnm = (char *) strcat(dir_output, "/restartOUT.d"); // Should probably just store restart info in LAMMPS binary restart
-  // filename_iresnm = (char *) strcat(dir_output, "/restartIN.d");
 
   CutTmin  = 50.0;
   CutTmax  = 50.0;
@@ -310,29 +326,9 @@ void FixSTMD::init()
   }
 
 
-  // Exponential energy bin setup
-  // if(QEXPO) {
-  // A second time?
-  // }
-
-  // Restart input
-  // if(QREST) {
-  // Probably just use LAMMPS restart capabilities to read info from binary file.
-  // }
-
-  // Exponential energy bin setup
-  // if(QEXPO) {
-  // A third time?
-  // }
-  
   if(MODI >= 1) for(int i=0; i<N; i++) 
 		  if(Y2[i] <= T1) Y2[i] = T1;
 
-  // Write values of all paramters to logfile
-  if(stmd_logfile) {
-    // Basically all the write() statements in stmd.f::stmdinitoutu() subroutine
-  }
-  
   // Search for pe compute, otherwise create a new one
   pe_compute_id = -1;
   for(int i=0; i<modify->ncompute; i++) {
@@ -377,6 +373,7 @@ void FixSTMD::init()
           strcat(filename,walker);
           strcat(filename,".d");
           std::ifstream file(filename);
+          
           for(int i=0; i<nsize; i++) {
               file >> list[i];
           }
@@ -425,19 +422,25 @@ void FixSTMD::init()
           //if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
 
           memory->destroy(list);
+
     }
   }
+  
+  // Write values of all paramters to logfile
+  if(stmd_logfile) {
+    // Basically all the write() statements in stmd.f::stmdinitoutu() subroutine
+  }  
 
   if( (stmd_logfile) && (nworlds > 1) ) {
-    fprintf(logfile,"RESTMD: nReplica= %i  walker= %i\n",nworlds,iworld);
-    fprintf(screen,"RESTMD: nReplica= %i  walker= %i\n",nworlds,iworld);
+    fprintf(logfile,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
+    fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
 
   if(stmd_logfile) {
     fprintf(logfile,"STMD Check initial values...\n");
-    fprintf(logfile,"STMD STG= %i N= %i  bin= %i\n",STG, N, bin); // diffE was included in stmd.f, but don't know what that is
+    fprintf(logfile,"STMD STAGE= %i #bins= %i  binsize %i\n",STG, N, bin); // diffE was included in stmd.f, but don't know what that is
     fprintf(screen,"STMD Check initial values...\n");
-    fprintf(screen,"STMD STG= %i N= %i  bin= %i\n",STG, N, bin); 
+    fprintf(screen,"STMD STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin); 
 
     // fprintf(logfile,"STMD Elist= ");
     // for(int i=0; i<N; i++) fprintf(logfile," %f",Elist[i]);
@@ -447,7 +450,7 @@ void FixSTMD::init()
     //for(int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
     //fprintf(logfile,"\n");
 
-    fprintf(logfile,"STMD Ynew(Y2)= ");
+    fprintf(logfile,"STMD Temperature (Y2)= ");
     for(int i=0; i<N; i++) fprintf(logfile," %f",Y2[i]);
     fprintf(logfile,"\n");
   }
@@ -552,8 +555,10 @@ int FixSTMD::Yval(double potE)
   int i = round(potE / double(bin)) - BinMin + 1;
 
   if( (i<1) || (i>N-1) ) {
-    fprintf(stdout,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
-    error->one(FLERR,"Histogram index out of range");
+    fprintf(screen,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
+    fprintf(logfile,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
+    if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Histogram index out of range");
+    else error->one(FLERR,"STMD: Histogram index out of range");
   }
 
   Y2[i+1] = Y2[i+1] / (1.0 - df * Y2[i+1]);
@@ -673,7 +678,7 @@ void FixSTMD::MAIN(int istep, double potE)
 
   if(STG >= 3) CountPH++;
 
-  if(stmd_debug) fprintf(logfile,"STMD STG= %i\n",STG);
+  if(stmd_debug) fprintf(logfile,"STMD STAGE %i\n",STG);
 
   // Statistical Temperature Update
   int stmdi = Yval(potE);
@@ -681,7 +686,7 @@ void FixSTMD::MAIN(int istep, double potE)
   // Gamma Update
   GammaE(potE,stmdi);
 
-  if(stmd_debug) fprintf(logfile,"STMD totCi= %i Count= %i Gamma= %f stmdi= %i\n T= %f",totCi,Count,Gamma,stmdi,T);
+  if(stmd_debug) fprintf(logfile,"STMD: totCi= %i Count= %i Gamma= %f stmdi= %i\n T= %f",totCi,Count,Gamma,stmdi,T);
 
   // Histogram Update
   AddedEHis(stmdi);
@@ -700,14 +705,14 @@ void FixSTMD::MAIN(int istep, double potE)
     fprintf(fp_whnm,"\n\n");
   }
 
-  // Production Run if STG == 4
+  // Production Run if STG >= 3
   // STG3 START: Check histogram and further reduce f until <= 1.0000001
   if(STG >= 3) {
     m = istep % TSC2;
     if((m == 0) && (RE_flag == 0)) { // STMD, reduce f based on histogram check
       // production_phase = 1;
 
-      if(stmd_logfile) fprintf(logfile,"STMD STAGE 3\nSTMD STG3 CHK HIST istep= %i  TSC2= %i\n",istep,TSC2);
+      if(stmd_logfile) fprintf(logfile,"STMD STAGE 3\nSTMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
       HCHK();
       
       if(stmd_logfile) {
@@ -836,7 +841,9 @@ void FixSTMD::MAIN(int istep, double potE)
     if(m == 0) {
       if(stmd_logfile) {
 	fprintf(logfile,"STMD STAGE 1\n");
-	fprintf(logfile,"STMD STG1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
+	fprintf(screen,"STMD STAGE 1\n");
+	fprintf(logfile,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
+	fprintf(screen,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
       }
       
       dig();
@@ -901,16 +908,17 @@ void FixSTMD::MAIN(int istep, double potE)
       for (int i=0; i<N; i++) {
           list[k++] = PROH[i];
       }
-      
 
+      // wipe file contents...
       char filename[256];
-      char walker[256]; // At most 127 replicas, should be enough.
+      char walker[256];
       sprintf(walker,"%i",iworld);
       strcpy(filename,dir_output);
       strcat(filename,"/oREST.");
       strcat(filename,walker);
       strcat(filename,".d");
       freopen(filename,"w",fp_orest);
+
       //fprintf(fp_orest,"STMD Output Restart Information, Step: %i, nbins: %i\n",istep,N);
       for(int i=0; i<numb; i++) fprintf(fp_orest,"%f\n",list[i]);
       for(int i=numb; i<N+numb; i++) fprintf(fp_orest,"%f ",list[i]);
@@ -919,7 +927,6 @@ void FixSTMD::MAIN(int istep, double potE)
       fprintf(fp_orest,"\n");
       for(int i=2*N+numb; i<nsize; i++) fprintf(fp_orest,"%f ",list[i]);
       fprintf(fp_orest,"\n");
-
 
       memory->destroy(list);
   }
