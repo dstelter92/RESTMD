@@ -79,7 +79,7 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   //
   //  fix fxstmd all stmd RSTFRQ f Tlo Thi Plo Phi binsize 10000 40000 300 PRNFRQ OREST
   //
-  RSTFRQ = atoi(arg[3]); // Probably a good idea to set this equal to restart value in input
+  RSTFRQ = atoi(arg[3]); // Probably a good idea to set this equal to restart value in input
   initf  = atof(arg[4]);
   TL     = atof(arg[5]);
   TH     = atof(arg[6]);
