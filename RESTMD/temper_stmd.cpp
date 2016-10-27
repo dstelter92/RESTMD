@@ -214,13 +214,6 @@ void TemperSTMD::command(int narg, char **arg )
 
   update->integrate->setup();
   
-  int stg_flag, stg_flag_me;
-  if (fix_stmd->STG == 1) stg_flag_me = 1;
-
-  MPI_Reduce(&stg_flag_me,&stg_flag,1,MPI_INT,MPI_MAX,0,world);
-
-  if ((me_universe == 0) && (stg_flag == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE 1, ensure exchanges turned off until STAGE 2");
-
   if (me_universe == 0) {
     if (universe->uscreen) {
       fprintf(universe->uscreen,"Step");
@@ -239,7 +232,7 @@ void TemperSTMD::command(int narg, char **arg )
 
   timer->init();
   timer->barrier_start();
-
+  
   for (int iswap = 0; iswap < nswaps; iswap++) {
 
     // run for nevery timesteps

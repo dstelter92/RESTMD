@@ -424,6 +424,9 @@ void FixSTMD::init()
           memory->destroy(list);
 
     }
+
+    if ((nworlds > 1) && (universe->me == 0) && (STG == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
+
   }
   
   // Write values of all paramters to logfile
