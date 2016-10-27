@@ -425,7 +425,7 @@ void FixSTMD::init()
 
     }
 
-    if ((nworlds > 1) && (universe->me == 0) && (STG == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
+    //if ((nworlds > 1) && (universe->me == 0) && (STG == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
 
   }
   

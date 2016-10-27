@@ -208,6 +208,14 @@ void TemperSTMD::command(int narg, char **arg )
 
   int which,partner,swap,partner_set_temp,partner_world;
   double pe,pe_partner,boltz_factor;//,new_temp;
+  
+  int stg_flag = 0;
+  int stg_flag_me = 0;
+  if (fix_stmd->STG == 1) stg_flag_me = 1;
+
+  MPI_Reduce(&stg_flag_me,&stg_flag,1,MPI_INT,MPI_SUM,0,universe->uworld);
+      
+  if ((me_universe == 0) && (stg_flag > (universe->nprocs - nworlds))) error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
 
   if (me_universe == 0 && universe->uscreen)
     fprintf(universe->uscreen,"Setting up RESTMD ...\n");
