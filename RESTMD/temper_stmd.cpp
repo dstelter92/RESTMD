@@ -100,8 +100,6 @@ void TemperSTMD::command(int narg, char **arg )
   if (fix_stmd->ST != temp)
       error->universe_all(FLERR,"Kinetic temperatures not the same, use homogeneous temperature control");
     
-  if ((fix_stmd->STG < 2) && (universe->me == 0)) error->universe_warn(FLERR,"RESTMD still in STAGE 1, exchanges turned off until STAGE 2");
-
 
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
@@ -215,6 +213,13 @@ void TemperSTMD::command(int narg, char **arg )
     fprintf(universe->uscreen,"Setting up RESTMD ...\n");
 
   update->integrate->setup();
+  
+  int stg_flag, stg_flag_me;
+  if (fix_stmd->STG == 1) stg_flag_me = 1;
+
+  MPI_Reduce(&stg_flag_me,&stg_flag,1,MPI_INT,MPI_MAX,0,world);
+
+  if ((me_universe == 0) && (stg_flag == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE 1, ensure exchanges turned off until STAGE 2");
 
   if (me_universe == 0) {
     if (universe->uscreen) {
@@ -323,7 +328,7 @@ void TemperSTMD::command(int narg, char **arg )
       }
       
       // Check what stage, if STG1, no swap
-      if (current_STG == 1) swap = 0;
+      //if (current_STG == 1) swap = 0; // warning instead...
 
       if (me_universe < partner)
         MPI_Send(&swap,1,MPI_INT,partner,0,universe->uworld);
