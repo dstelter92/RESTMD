@@ -99,6 +99,9 @@ void TemperSTMD::command(int narg, char **arg )
 
   if (fix_stmd->ST != temp)
       error->universe_all(FLERR,"Kinetic temperatures not the same, use homogeneous temperature control");
+    
+  if ((fix_stmd->STG < 2) && (universe->me == 0)) error->universe_warn(FLERR,"RESTMD still in STAGE 1, exchanges turned off until STAGE 2");
+
 
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
@@ -114,7 +117,7 @@ void TemperSTMD::command(int narg, char **arg )
   // fix style must be appropriate for temperature control
 
   if ((strcmp(modify->fix[whichfix]->style,"stmd") != 0)) 
-    error->universe_all(FLERR,"Must use with fix stmd, fix is not valid");
+    error->universe_all(FLERR,"Must use with fix STMD, fix is not valid");
 
   // setup for long tempering run
 
