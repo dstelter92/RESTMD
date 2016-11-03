@@ -182,12 +182,14 @@ void FixSTMD::init()
         else error->all(FLERR,"STMD: Restart file does not exist\n");
     }
 
+    /*
     // check file not empty
     std::ifstream file(filename);
     if (file.peek() == std::ifstream::traits_type::eof()) {
         if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file is empty\n");
         else error->all(FLERR,"STMD: Restart file is empty\n");
     }
+    */
 
   }
 
@@ -873,7 +875,7 @@ void FixSTMD::MAIN(int istep, double potE)
 
   // Write restart info to external file
   int r = istep % RSTFRQ;
-  if( (r == 0) && (comm->me == 0) ) {
+  if( (r == 0) && (comm->me == 0) && (Count > 0)) {
 
       int k = 0;
       int numb = 13;
