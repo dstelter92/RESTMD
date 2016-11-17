@@ -71,15 +71,13 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   restart_global = 0;
   restart_peratom = peratom_flag = 0;
 
-  // for(int i=0; i<narg; i++) fprintf(stdout,"i= %i  arg= %s\n",i,arg[i]);
-
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
   //  a stmd.inp file is probably the best mechanism for input.
   //
   //  fix fxstmd all stmd RSTFRQ f Tlo Thi Plo Phi binsize 10000 40000 300 PRNFRQ OREST
 
-  RSTFRQ = atoi(arg[3]);            // Probably a good idea to set this equal to restart value in input
+  RSTFRQ = atoi(arg[3]);        // Probably a good idea to set this equal to restart value in input
   initf  = atof(arg[4]);
   TL     = atof(arg[5]);
   TH     = atof(arg[6]);
@@ -88,15 +86,13 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   bin    = atoi(arg[9]);
   TSC1   = atof(arg[10]);
   TSC2   = atof(arg[11]);
-  ST     = atof(arg[12]);           // This value should be consistent with target temperature of thermostat fix
+  ST     = atof(arg[12]);       // This value should be consistent with target temperature of thermostat fix
   PRNFRQ = atoi(arg[13]);
-  RE_flag = atoi(arg[14]);          // 0 for hckh() to reduce f-val, 1 for constant reduction
-  OREST  = atoi(arg[15]);           // 0 for new run, 1 for restart
+  RE_flag = atoi(arg[14]);      // 0 for hckh() to reduce f-val, 1 for constant reduction
+  OREST  = atoi(arg[15]);       // 0 for new run, 1 for restart
   
   // If RESTMD, check with temper_stmd to ensure walkers are the same.
   // Do this in temper_stmd...
-  //me_temp = universe->iworld;
-  //if (narg == 17) me_temp = force->inumeric(FLERR,arg[16]);
   
   // Make dir_output hard coded to local dir
   strcpy(dir_output,"./");
@@ -107,8 +103,8 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   stmd_logfile = stmd_debug = 0;
   if(comm->me == 0 && logfile) stmd_logfile = 1;
 
-  // Hard-coded for verbose output
-  //  stmd_debug = 1;
+  // DEBUG FLAG
+  //stmd_debug = 1;
 
   fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
 }
@@ -160,12 +156,11 @@ void FixSTMD::init()
     strcpy(filename_orest,filename);
 
     if (fp_orest = fopen(filename, "r")) {
-        fclose(fp_orest);
+      fclose(fp_orest);
     } else {
-        if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
-        else error->all(FLERR,"STMD: Restart file does not exist\n");
+      if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
+      else error->all(FLERR,"STMD: Restart file does not exist\n");
     }
-
   }
 
   if(comm->me == 0) {
@@ -195,20 +190,20 @@ void FixSTMD::init()
       fp_whpnm = fopen(filename,"w");
     }
     if( (!fp_orest) && (!OREST) ) {
-        strcpy(filename,dir_output);
-        strcat(filename,"/oREST.");
-        strcat(filename,walker);
-        strcat(filename,".d");
-        strcpy(filename_orest,filename);
-        fp_orest  = fopen(filename,"w");
+      strcpy(filename,dir_output);
+      strcat(filename,"/oREST.");
+      strcat(filename,walker);
+      strcat(filename,".d");
+      strcpy(filename_orest,filename);
+      fp_orest  = fopen(filename,"w");
     }
     if( (!fp_orest) && (OREST) ) {
-        strcpy(filename,dir_output);
-        strcat(filename,"/oREST.");
-        strcat(filename,walker);
-        strcat(filename,".d");
-        strcpy(filename_orest,filename);
-        fp_orest  = fopen(filename,"r");
+      strcpy(filename,dir_output);
+      strcat(filename,"/oREST.");
+      strcat(filename,walker);
+      strcat(filename,".d");
+      strcpy(filename_orest,filename);
+      fp_orest  = fopen(filename,"r");
     }
   }
 
@@ -269,7 +264,7 @@ void FixSTMD::init()
   memory->grow(PROH, N, "FixSTMD:PROH");
   memory->grow(Prob, N, "FixSTMD:Prob");
 
-  for(int i=0; i<N; i++) {
+  for (int i=0; i<N; i++) {
     Y1[i] = T2;
     Y2[i] = T2;
     Hist[i] = 0;
@@ -279,13 +274,14 @@ void FixSTMD::init()
   }
 
 
-  if(MODI >= 1) for(int i=0; i<N; i++) 
+  if (MODI >= 1)
+    for(int i=0; i<N; i++) 
 		  if(Y2[i] <= T1) Y2[i] = T1;
 
   // Search for pe compute, otherwise create a new one
   pe_compute_id = -1;
-  for(int i=0; i<modify->ncompute; i++) {
-    if(strcmp(modify->compute[i]->style,"pe") == 0) {
+  for (int i=0; i<modify->ncompute; i++) {
+    if (strcmp(modify->compute[i]->style,"pe") == 0) {
       pe_compute_id = i;
       break;
     }
@@ -293,7 +289,7 @@ void FixSTMD::init()
 
   // Pretty sure a pe compute is always present, but check anyways.
   // Did we find a pe compute? If not, then create one.
-  if(pe_compute_id < 0) {
+  if (pe_compute_id < 0) {
     int n = strlen(id) + 4;
     id_pe = new char[n];
     strcpy(id_pe,id);
@@ -310,8 +306,8 @@ void FixSTMD::init()
     pe_compute_id = modify->ncompute - 1;
   }
   
-  if(OREST) { // Read oREST.d into variables
-    if(comm->me == 0) {
+  if (OREST) { // Read oREST.d into variables
+    if (comm->me == 0) {
       int k = 0;
       int numb = 13;
       int nsize = 3*N + numb;
@@ -468,14 +464,15 @@ void FixSTMD::dig()
   int nkeepmin = 0;
   double keepmin = Y2[nkeepmin];
 
-  for(int i=0; i<N; i++) {
-    if(Y2[i] <= keepmin) {
+  for (int i=0; i<N; i++) {
+    if (Y2[i] <= keepmin) {
       keepmin = Y2[i];
       nkeepmin = i;
     }
   }
 
-  for(int i=0; i<nkeepmin; i++) Y2[i] = keepmin;
+  for (int i=0; i<nkeepmin; i++) 
+    Y2[i] = keepmin;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -923,6 +920,6 @@ void FixSTMD::modify_fix(int which, double *values, char *notused)
   else if (which == 1) BinMax = static_cast<int>(values[0] + 0.5);
   else if (which == 2) bin    = static_cast<int>(values[0] + 0.5);
   else if (which == 3) {
-    for(int i=0; i<N; i++) Y2[i] = values[i];
+    for (int i=0; i<N; i++) Y2[i] = values[i];
   }
 }
