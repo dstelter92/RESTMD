@@ -90,7 +90,8 @@ void TemperStmd::command(int narg, char **arg )
   seed_swap = force->inumeric(FLERR,arg[4]);
   seed_boltz = force->inumeric(FLERR,arg[5]);
 
-  //exchange flag, 0 if swap off (run many replicas without exchange), 1 if swap on.
+  // Exchange flag, 0 if swap off (run many replicas without exchange)
+  // 1 if swap on.
   EX_flag = atoi(arg[6]); 
 
   if (fix_stmd->ST != temp)

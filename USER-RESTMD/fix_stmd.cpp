@@ -61,7 +61,7 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 
 /* ---------------------------------------------------------------------- */
 
-FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
+FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
   if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
@@ -111,7 +111,7 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
 
 /* ---------------------------------------------------------------------- */
 
-FixSTMD::~FixSTMD()
+FixStmd::~FixStmd()
 {
   memory->destroy(Y1);
   memory->destroy(Y2);
@@ -123,7 +123,7 @@ FixSTMD::~FixSTMD()
 
 /* ---------------------------------------------------------------------- */
 
-int FixSTMD::setmask()
+int FixStmd::setmask()
 {
   int mask = 0;
   mask |= POST_FORCE;
@@ -134,7 +134,7 @@ int FixSTMD::setmask()
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::init()
+void FixStmd::init()
 {
   // Get number of replicas (worlds) and walker number
   nworlds = universe->nworlds;
@@ -369,7 +369,7 @@ void FixSTMD::init()
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::setup(int vflag)
+void FixStmd::setup(int vflag)
 {
   if (strstr(update->integrate_style,"verlet")) {
     post_force(vflag);
@@ -383,14 +383,14 @@ void FixSTMD::setup(int vflag)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::min_setup(int vflag)
+void FixStmd::min_setup(int vflag)
 {
   post_force(vflag);
 }
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::post_force(int vflag)
+void FixStmd::post_force(int vflag)
 {
   double **f = atom->f;
   int *mask = atom->mask;
@@ -416,7 +416,7 @@ void FixSTMD::post_force(int vflag)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::end_of_step()
+void FixStmd::end_of_step()
 {
   // Force computation of energies on next step
   modify->compute[pe_compute_id]->invoked_flag |= INVOKED_SCALAR;
@@ -425,7 +425,7 @@ void FixSTMD::end_of_step()
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::min_post_force(int vflag)
+void FixStmd::min_post_force(int vflag)
 {
   post_force(vflag);
 }
@@ -434,7 +434,7 @@ void FixSTMD::min_post_force(int vflag)
    memory usage of local atom-based array
 ------------------------------------------------------------------------- */
 
-double FixSTMD::memory_usage()
+double FixStmd::memory_usage()
 {
   double bytes = 0.0;
   bytes+= 7 * N * sizeof(double);
@@ -446,7 +446,7 @@ double FixSTMD::memory_usage()
    Translation of stmd.f subroutines
 ------------------------------------------------------------------------- */
 
-void FixSTMD::dig()
+void FixStmd::dig()
 {
   int nkeepmin = 0;
   double keepmin = Y2[nkeepmin];
@@ -464,7 +464,7 @@ void FixSTMD::dig()
 
 /* ---------------------------------------------------------------------- */
 
-int FixSTMD::Yval(double potE)
+int FixStmd::Yval(double potE)
 {
   int i = round(potE / double(bin)) - BinMin + 1;
 
@@ -488,7 +488,7 @@ int FixSTMD::Yval(double potE)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::GammaE(double potE, int indx)
+void FixStmd::GammaE(double potE, int indx)
 {
   const int i  = indx;
   const int im = indx - 1;
@@ -510,7 +510,7 @@ void FixSTMD::GammaE(double potE, int indx)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::AddedEHis(int i)
+void FixStmd::AddedEHis(int i)
 {
   Hist[i] = Hist[i] + 1;
   Htot[i] = Htot[i] + 1;
@@ -518,7 +518,7 @@ void FixSTMD::AddedEHis(int i)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::EPROB(int icycle)
+void FixStmd::EPROB(int icycle)
 {
   int sw, m;
   const int indx = icycle;
@@ -539,23 +539,23 @@ void FixSTMD::EPROB(int icycle)
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::ResetPH()
+void FixStmd::ResetPH()
 {
   for (int i=0; i<N; i++) Hist[i] = 0;
 }
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::TCHK()
+void FixStmd::TCHK()
 {
   if ((stmd_logfile) && (stmd_debug))
-    fprintf(logfile,"STMD TCHK: T1= %f (%f K)  Y2[0]= %f (%f K)\n",T1,T1*ST,Y2[0],Y2[0]*ST);
+    fprintf(logfile,"Stmd TCHK: T1= %f (%f K)  Y2[0]= %f (%f K)\n",T1,T1*ST,Y2[0],Y2[0]*ST);
   if (Y2[0] == T1) STG = 2;
 }
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::HCHK()
+void FixStmd::HCHK()
 {
   SWfold = SWf;
 
@@ -594,7 +594,7 @@ void FixSTMD::HCHK()
 
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::MAIN(int istep, double potE)
+void FixStmd::MAIN(int istep, double potE)
 {
   Count = istep;
   totCi++;
@@ -876,14 +876,14 @@ void FixSTMD::MAIN(int istep, double potE)
 
 /* ---------------------------------------------------------------------- */
 
-double FixSTMD::compute_scalar()
+double FixStmd::compute_scalar()
 {
   return Gamma;
 }
 
 /* ---------------------------------------------------------------------- */
 
-double FixSTMD::compute_array(int i, int j)
+double FixStmd::compute_array(int i, int j)
 {
   // Returns data from arrays
   double xx;
@@ -900,7 +900,7 @@ double FixSTMD::compute_array(int i, int j)
 /* --- Trigger reinitialization of key arrays after modify_fix called --- */
 /* ---------------------------------------------------------------------- */
 
-void FixSTMD::modify_fix(int which, double *values, char *notused)
+void FixStmd::modify_fix(int which, double *values, char *notused)
 {
   // Sets a specified variable to the input value(s)
   if      (which == 0) BinMin = static_cast<int>(values[0] + 0.5);
