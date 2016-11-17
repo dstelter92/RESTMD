@@ -78,8 +78,8 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   //  a stmd.inp file is probably the best mechanism for input.
   //
   //  fix fxstmd all stmd RSTFRQ f Tlo Thi Plo Phi binsize 10000 40000 300 PRNFRQ OREST
-  //
-  RSTFRQ = atoi(arg[3]); // Probably a good idea to set this equal to restart value in input
+
+  RSTFRQ = atoi(arg[3]);            // Probably a good idea to set this equal to restart value in input
   initf  = atof(arg[4]);
   TL     = atof(arg[5]);
   TH     = atof(arg[6]);
@@ -88,23 +88,18 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
   bin    = atoi(arg[9]);
   TSC1   = atof(arg[10]);
   TSC2   = atof(arg[11]);
-  ST     = atof(arg[12]); // This value should be consistent with target temperature of thermostat fix
+  ST     = atof(arg[12]);           // This value should be consistent with target temperature of thermostat fix
   PRNFRQ = atoi(arg[13]);
-  RE_flag = atoi(arg[14]); // 0 for hckh() to reduce f-val, 1 for constant reduction
-  OREST  = atoi(arg[15]); // 0 for new run, 1 for restart
+  RE_flag = atoi(arg[14]);          // 0 for hckh() to reduce f-val, 1 for constant reduction
+  OREST  = atoi(arg[15]);           // 0 for new run, 1 for restart
   
   // If RESTMD, check with temper_stmd to ensure walkers are the same.
   // Do this in temper_stmd...
   //me_temp = universe->iworld;
   //if (narg == 17) me_temp = force->inumeric(FLERR,arg[16]);
   
-  
   // Make dir_output hard coded to local dir
   strcpy(dir_output,"./");
-  //if(narg == 18) strcpy(dir_output,arg[17]);
-  //else strcpy(dir_output,"./");
-  
-  //Elist = NULL;
   
   Y1 = Y2 = Prob = NULL;
   Hist = Htot = PROH = NULL;
@@ -122,23 +117,12 @@ FixSTMD::FixSTMD(LAMMPS *lmp, int narg, char **arg) :
 
 FixSTMD::~FixSTMD()
 {
-  //memory->destroy(Elist);
-
   memory->destroy(Y1);
   memory->destroy(Y2);
   memory->destroy(Hist);
   memory->destroy(Htot);
   memory->destroy(PROH);
   memory->destroy(Prob);
-  
-  /*
-  if(comm->me == 0) {
-    fclose(fp_wtnm);
-    fclose(fp_whnm);
-    fclose(fp_whpnm);
-    fclose(fp_orest);
-  }
-  */
 }
 
 /* ---------------------------------------------------------------------- */
@@ -182,20 +166,10 @@ void FixSTMD::init()
         else error->all(FLERR,"STMD: Restart file does not exist\n");
     }
 
-    /*
-    // check file not empty
-    std::ifstream file(filename);
-    if (file.peek() == std::ifstream::traits_type::eof()) {
-        if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file is empty\n");
-        else error->all(FLERR,"STMD: Restart file is empty\n");
-    }
-    */
-
   }
 
   if(comm->me == 0) {
     char filename[256];
-    
     if(!fp_wtnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WT.");
@@ -204,7 +178,6 @@ void FixSTMD::init()
       strcpy(filename_wtnm,filename);
       fp_wtnm  = fopen(filename,"w");
     }
-
     if(!fp_whnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WH.");
@@ -213,7 +186,6 @@ void FixSTMD::init()
       strcpy(filename_whnm,filename);
       fp_whnm  = fopen(filename,"w");
     }
-
     if(!fp_whpnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WHP.");
@@ -222,8 +194,6 @@ void FixSTMD::init()
       strcpy(filename_whpnm,filename);
       fp_whpnm = fopen(filename,"w");
     }
-
-
     if( (!fp_orest) && (!OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/oREST.");
@@ -232,7 +202,6 @@ void FixSTMD::init()
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"w");
     }
-
     if( (!fp_orest) && (OREST) ) {
         strcpy(filename,dir_output);
         strcat(filename,"/oREST.");
@@ -241,19 +210,7 @@ void FixSTMD::init()
         strcpy(filename_orest,filename);
         fp_orest  = fopen(filename,"r");
     }
-
-    /*
-    if( (!fp_irest) && (OREST) ) {
-        strcpy(filename,dir_output);
-        strcat(filename,"/iREST.");
-        strcat(filename,walker);
-        strcat(filename,".d");
-        strcpy(filename_irest,filename);
-        fp_irest  = fopen(filename,"w");
-    }
-    */
   }
-
 
   CutTmin  = 50.0;
   CutTmax  = 50.0;
@@ -294,12 +251,6 @@ void FixSTMD::init()
   SWchk   = 1;
   CountPH = 0;
   T = ST; // latest T_s at bin i
-
-  //memory->grow(Elist, N, "FixSTMD:Elist");
-
-  // for(int i=0; i<N; i++) 
-  //   if(QEXPO) Elist[i] = exa + exb * exp(double(i) - 1.0 / exc);
-  //   else Elist[i] = Emin + double(bin * (i-1));
 
   f = initf;
   df = log(f) * 0.5 / bin;
@@ -359,104 +310,76 @@ void FixSTMD::init()
     pe_compute_id = modify->ncompute - 1;
   }
   
-
   if(OREST) { // Read oREST.d into variables
-      if(comm->me == 0) {
-          int k = 0;
-          int numb = 13;
-          int nsize = 3*N + numb;
-          double *list;
-          memory->create(list,nsize,"stmd:list");
-          //double list[nsize];
+    if(comm->me == 0) {
+      int k = 0;
+      int numb = 13;
+      int nsize = 3*N + numb;
+      double *list;
+      memory->create(list,nsize,"stmd:list");
 
-          char filename[256];
-          strcpy(filename,dir_output);
-          strcat(filename,"/oREST.");
-          strcat(filename,walker);
-          strcat(filename,".d");
-          std::ifstream file(filename);
+      char filename[256];
+      strcpy(filename,dir_output);
+      strcat(filename,"/oREST.");
+      strcat(filename,walker);
+      strcat(filename,".d");
+      std::ifstream file(filename);
           
-          for(int i=0; i<nsize; i++) {
-              file >> list[i];
-          }
+      for(int i=0; i<nsize; i++) 
+        file >> list[i];
 
-          //fprintf(fp_irest,"STMD Input Restart Information\n");
-          /*
-          for(int i=0; i<nsize; i++) {
-              fprintf(fp_irest,"%f ",list[i]);
-          }
-          fprintf(fp_irest,"\n");
-          */
-
-          //int nbins = static_cast<int> (list[k++]);
-          STG = static_cast<int> (list[k++]);
-          f = list[k++];
-          CountH = static_cast<int> (list[k++]);
-          //df = list[k++];
-          SWf = static_cast<int> (list[k++]);
-          SWfold = static_cast<int> (list[k++]);
-          SWchk = static_cast<int> (list[k++]);
-          Count = static_cast<int> (list[k++]);
-          totCi = static_cast<int> (list[k++]);
-          CountPH = static_cast<int> (list[k++]);
-          //TSC1 = static_cast<int> (list[k++]);
-          //TSC2 = static_cast<int> (list[k++]);
-          //Gamma = list[k++];
-          //T0 = list[k++];
-          //ST = list[k++];
-          T1 = list[k++];
-          T2 = list[k++];
-          CTmin = list[k++];
-          CTmax = list[k++];
-          //int oldiworld = list[k++];
-          for (int i=0; i<N; i++) {
-              Y2[i] = list[k++];
-          }
-          for (int i=0; i<N; i++) {
-              Htot[i] = list[k++];
-          }
-          for (int i=0; i<N; i++) {
-              PROH[i] = list[k++];
-          }
-
-          //if(oldiworld != iworld) error->all(FLERR,"STMD: Walkers do not match restart file");
-          //if(nbins != N) error->all(FLERR,"STMD: Number of bins from restart file does not match");
-          //if(oldiworld != me_temp) error->all(FLERR,"STMD: Wrong input file read in");
-
-          memory->destroy(list);
-
+      //int nbins = static_cast<int> (list[k++]);
+      STG = static_cast<int> (list[k++]);
+      f = list[k++];
+      CountH = static_cast<int> (list[k++]);
+      //df = list[k++];
+      SWf = static_cast<int> (list[k++]);
+      SWfold = static_cast<int> (list[k++]);
+      SWchk = static_cast<int> (list[k++]);
+      Count = static_cast<int> (list[k++]);
+      totCi = static_cast<int> (list[k++]);
+      CountPH = static_cast<int> (list[k++]);
+      //TSC1 = static_cast<int> (list[k++]);
+      //TSC2 = static_cast<int> (list[k++]);
+      //Gamma = list[k++];
+      //T0 = list[k++];
+      //ST = list[k++];
+      T1 = list[k++];
+      T2 = list[k++];
+      CTmin = list[k++];
+      CTmax = list[k++];
+      
+      for (int i=0; i<N; i++)
+        Y2[i] = list[k++];
+      for (int i=0; i<N; i++)
+        Htot[i] = list[k++];
+      for (int i=0; i<N; i++)
+        PROH[i] = list[k++];
+      
+      memory->destroy(list);
     }
-
-    //if ((nworlds > 1) && (universe->me == 0) && (STG == 1)) error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
-
   }
   
   // Write values of all paramters to logfile
-  if(stmd_logfile) {
-    // Basically all the write() statements in stmd.f::stmdinitoutu() subroutine
-  }  
-
-  if( (stmd_logfile) && (nworlds > 1) ) {
+  if ((stmd_logfile) && (nworlds > 1)) {
     fprintf(logfile,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
 
-  if(stmd_logfile) {
+  if ((stmd_logfile) && (nworlds == 1)) {
     fprintf(logfile,"STMD Check initial values...\n");
     fprintf(logfile,"STMD STAGE= %i #bins= %i  binsize %i\n",STG, N, bin); // diffE was included in stmd.f, but don't know what that is
     fprintf(screen,"STMD Check initial values...\n");
-    fprintf(screen,"STMD STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin); 
-
-    // fprintf(logfile,"STMD Elist= ");
-    // for(int i=0; i<N; i++) fprintf(logfile," %f",Elist[i]);
-    // fprintf(logfile,"\n");
-
+    fprintf(screen,"STMD STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin);
+  }
+    
+  if ((stmd_logfile) && (stmd_debug)) {
     //fprintf(logfile,"STMD Yold(Y1)= ");
     //for(int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
     //fprintf(logfile,"\n");
-
     fprintf(logfile,"STMD Temperature (Y2)= ");
-    for(int i=0; i<N; i++) fprintf(logfile," %f",Y2[i]);
+    for (int i=0; i<N; i++) 
+      fprintf(logfile," %f",Y2[i]);
     fprintf(logfile,"\n");
   }
 }
@@ -490,12 +413,14 @@ void FixSTMD::post_force(int vflag)
   int *mask = atom->mask;
   int nlocal = atom->nlocal;
 
-  double potE = modify->compute[pe_compute_id]->compute_scalar(); // Get current value of potential energy from compute/pe
+  // Get current value of potential energy from compute/pe
+  double potE = modify->compute[pe_compute_id]->compute_scalar(); 
 
   // Master rank will compute scaling factor and then Bcast to world
   MAIN(update->ntimestep,potE);
-  
-  MPI_Bcast(&Gamma, 1, MPI_DOUBLE, 0, world); // \Gamma(U) = T_0 / T(U)
+
+  // Gamma(U) = T_0 / T(U)
+  MPI_Bcast(&Gamma, 1, MPI_DOUBLE, 0, world); 
 
   // Scale forces
   for (int i = 0; i < nlocal; i++)
@@ -559,7 +484,7 @@ int FixSTMD::Yval(double potE)
 {
   int i = round(potE / double(bin)) - BinMin + 1;
 
-  if( (i<1) || (i>N-1) ) {
+  if ((i<1) || (i>N-1)) {
     fprintf(screen,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
     fprintf(logfile,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
     if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Histogram index out of range");
@@ -569,8 +494,10 @@ int FixSTMD::Yval(double potE)
   Y2[i+1] = Y2[i+1] / (1.0 - df * Y2[i+1]);
   Y2[i-1] = Y2[i-1] / (1.0 + df * Y2[i-1]);
 
-  if(Y2[i-1] < T1) Y2[i-1] = T1;
-  if(Y2[i+1] > T2) Y2[i+1] = T2;
+  if (Y2[i-1] < T1) 
+    Y2[i-1] = T1;
+  if (Y2[i+1] > T2) 
+    Y2[i+1] = T2;
 
   return i;
 }
@@ -586,7 +513,7 @@ void FixSTMD::GammaE(double potE, int indx)
   const double e = potE - double( round(potE / double(bin)) * bin );
 
   //double T;  // made this public to share with RESTMD
-  if(e > 0.0) {
+  if (e > 0.0) {
     const double lam = (Y2[ip] - Y2[i]) / double(bin);
     T = Y2[i] + lam * e;
   } else if (e < 0.0) {
@@ -612,13 +539,17 @@ void FixSTMD::EPROB(int icycle)
   int sw, m;
   const int indx = icycle;
   m = indx % TSC1;
-  if( (m == 0) && (indx != 0) ) sw = 1;
+  if ((m == 0) && (indx != 0)) sw = 1;
   
   m = indx % TSC2;
-  if( (m == 0) && (indx != 0) ) sw = 2;
+  if ((m == 0) && (indx != 0)) sw = 2;
 
-  if(sw == 1) for(int i=0; i<N; i++) Prob[i] = Prob[i] / double(TSC1);
-  else if(sw == 2) for(int i=0; i<N; i++) Prob[i] = Prob[i] / double(TSC2);
+  if (sw == 1) 
+    for (int i=0; i<N; i++) 
+      Prob[i] = Prob[i] / double(TSC1);
+  else if (sw == 2)
+    for (int i=0; i<N; i++) 
+      Prob[i] = Prob[i] / double(TSC2);
   sw = 0;
 }
 
@@ -626,15 +557,16 @@ void FixSTMD::EPROB(int icycle)
 
 void FixSTMD::ResetPH()
 {
-  for(int i=0; i<N; i++) Hist[i] = 0;
+  for (int i=0; i<N; i++) Hist[i] = 0;
 }
 
 /* ---------------------------------------------------------------------- */
 
 void FixSTMD::TCHK()
 {
-  if(stmd_logfile) fprintf(logfile,"STMD TCHK: T1= %f (%f K)  Y2[0]= %f (%f K)\n",T1,T1*ST,Y2[0],Y2[0]*ST);
-  if(Y2[0] == T1) STG = 2;
+  if ((stmd_logfile) && (stmd_debug))
+    fprintf(logfile,"STMD TCHK: T1= %f (%f K)  Y2[0]= %f (%f K)\n",T1,T1*ST,Y2[0],Y2[0]*ST);
+  if (Y2[0] == T1) STG = 2;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -649,29 +581,31 @@ void FixSTMD::HCHK()
 
   // check CTmin and CTmax
   // average histogram
-  for(int i=0; i<N; i++) {
-    if( (Y2[i] > CTmin) && (Y2[i] < CTmax) ) {
+  for (int i=0; i<N; i++) {
+    if ((Y2[i] > CTmin) && (Y2[i] < CTmax)) {
       aveH = aveH + double(Hist[i]);
       icnt++;
     }
   }
 
-  if(stmd_logfile) fprintf(logfile,"STMD CHK HIST: icnt= %i  aveH= %f  N= %i\n",icnt,aveH,N);
-  if(icnt==0) return;
+  if ((stmd_logfile) && (stmd_debug)) 
+    fprintf(logfile,"STMD CHK HIST: icnt= %i  aveH= %f  N= %i\n",icnt,aveH,N);
+  if (icnt==0) return;
 
   aveH = aveH / double(icnt);
   
   double eval;
-  for(int i=0; i<N; i++) {
-    if( (Y2[i] > CTmin) && (Y2[i] < CTmax) ) {
+  for (int i=0; i<N; i++) {
+    if ((Y2[i] > CTmin) && (Y2[i] < CTmax) ) {
       eval = abs(double(Hist[i] - aveH) / aveH);
-      if(eval > HCKtol) ichk++;
-      //if(stmd_logfile)
-	//fprintf(logfile,"STMD CHK HIST: totCi= %i  i= %i  eval= %f  HCKtol= %f  ichk= %i  Hist[i]= %i\n",totCi,i,eval,HCKtol,ichk,Hist[i]);
+      if (eval > HCKtol) ichk++;
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD CHK HIST: totCi= %i  i= %i  eval= %f  HCKtol= %f  " 
+            "ichk= %i  Hist[i]= %i\n",totCi,i,eval,HCKtol,ichk,Hist[i]);
     }
   }
 
-  if(ichk < 1) SWf = SWf + 1;
+  if (ichk < 1) SWf = SWf + 1;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -681,9 +615,10 @@ void FixSTMD::MAIN(int istep, double potE)
   Count = istep;
   totCi++;
 
-  if(STG >= 3) CountPH++;
+  if (STG >= 3) CountPH++;
 
-  if(stmd_debug) fprintf(logfile,"STMD STAGE %i\n",STG);
+  if ((stmd_logfile) && (stmd_debug))
+    fprintf(logfile,"STMD STAGE %i\n",STG);
 
   // Statistical Temperature Update
   int stmdi = Yval(potE);
@@ -691,249 +626,267 @@ void FixSTMD::MAIN(int istep, double potE)
   // Gamma Update
   GammaE(potE,stmdi);
 
-  if(stmd_debug) fprintf(logfile,"STMD: totCi= %i Count= %i Gamma= %f stmdi= %i\n T= %f",totCi,Count,Gamma,stmdi,T);
+  if ((stmd_logfile) && (stmd_debug))
+    fprintf(logfile,"STMD: totCi= %i Count= %i Gamma= %f stmdi= %i\n "
+        "T= %f",totCi,Count,Gamma,stmdi,T);
 
   // Histogram Update
   AddedEHis(stmdi);
   CountH++;
 
   // Add to Histogram for production run
-  if(STG >= 3) {
+  if (STG >= 3) {
     PROH[stmdi]++;
     CountPH++;
   }
 
   // Hist Output
   int m = istep % PRNFRQ;
-  if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f\n", i, (i*bin)+Emin, Hist[i], Htot[i], Y2[i], CountH, totCi, f);
+  if ((m == 0) && (comm->me == 0)) {
+    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
+        "\n", i, (i*bin)+Emin, Hist[i], Htot[i], Y2[i], CountH, totCi, f);
     fprintf(fp_whnm,"\n\n");
   }
 
   // Production Run if STG >= 3
   // STG3 START: Check histogram and further reduce f until <= 1.0000001
-  if(STG >= 3) {
+  if (STG >= 3) {
     m = istep % TSC2;
-    if((m == 0) && (RE_flag == 0)) { // STMD, reduce f based on histogram check
-      // production_phase = 1;
 
-      if(stmd_logfile) fprintf(logfile,"STMD STAGE 3\nSTMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
+    // STMD, reduce f based on histogram check
+    if ((m == 0) && (RE_flag == 0)) { 
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD STAGE 3\nSTMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
       HCHK();
-      
-      if(stmd_logfile) {
-	fprintf(logfile,"STMD STG3 SWfold= %i  SWf= %i\n",SWfold,SWf);
-	fprintf(logfile,"STMD STG3 f= %f  SWchk= %i\n",f,SWchk);
+      if ((stmd_logfile) && (stmd_debug)) {
+        fprintf(logfile,"STMD STG3 SWfold= %i  SWf= %i\n",SWfold,SWf);
+        fprintf(logfile,"STMD STG3 f= %f  SWchk= %i\n",f,SWchk);
       }
-
-      if(SWfold != SWf) {
-	if(stmd_logfile) fprintf(logfile,"STMD STG f= %f  df= %f\n",f,df);
-	f = sqrt(f);
-	df = log(f) * 0.5 / double(bin);
-	if(stmd_logfile) {
-	  fprintf(logfile,"STMD STG3 f= %f  SWf= %i  df= %f\n",f,SWf,df);
-	  fprintf(logfile,"STMD STG3 NEXT STG= %i\n",STG);
-	}
-	SWchk = 1;
-
-	// Histogram reset
-	ResetPH();
-	CountH = 0;
+      if (SWfold != SWf) {
+        if ((stmd_logfile) && (stmd_debug))
+          fprintf(logfile,"STMD STG f= %f  df= %f\n",f,df);
+        f = sqrt(f);
+        df = log(f) * 0.5 / double(bin);
+        if ((stmd_logfile) && (stmd_debug)) {
+          fprintf(logfile,"STMD STG3 f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG3 NEXT STG= %i\n",STG);
+        }
+        SWchk = 1;
+        // Histogram reset
+        ResetPH();
+        CountH = 0;
       } else {
-	SWchk++;
-	if(stmd_logfile) fprintf(logfile,"STMD STG3 f= %f  Swchk= %i T= %f\n",f,SWchk,T);
+        SWchk++;
+        if ((stmd_logfile) && (stmd_debug))
+          fprintf(logfile,"STMD STG3 f= %f  Swchk= %i T= %f\n",f,SWchk,T);
       }
-
+      
       // Check stage 3
-      if(f <= finFval) STG = 4;
+      if (f <= finFval) STG = 4;
 
       // Production run: Hist Output STMD
       m = istep % PRNFRQ;
-      if( (m == 0) && (comm->me == 0) ) {
-	for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin, Hist[i], PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
-	fprintf(fp_whpnm,"\n\n");
+      if ((m == 0) && (comm->me == 0)) {
+        for (int i=0; i<N; i++)
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\ 
+              Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
+        fprintf(fp_whpnm,"\n\n");
       }
     } // if((m == 0) && (RE_flag == 0))
 
-    if((m == 0) && (RE_flag == 1)) { // RESTMD, reduce f to sqrt(f) every TSC2 steps
-      if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
+    // RESTMD, reduce f to sqrt(f) every TSC2 steps
+    if ((m == 0) && (RE_flag == 1)) { 
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
       f = sqrt(f);
       df = log(f) * 0.5 / double(bin);
-	  if(stmd_logfile) {
-	    fprintf(logfile,"RESTMD STG3 f= %f  df= %f\n",f,df);
-	    fprintf(logfile,"RESTMD STG3 NEXT STG= %i\n",STG);
+      if ((stmd_logfile) && (stmd_debug)) {
+        fprintf(logfile,"RESTMD STG3 f= %f  df= %f\n",f,df);
+        fprintf(logfile,"RESTMD STG3 NEXT STG= %i\n",STG);
       }
+
       // Histogram reset
       ResetPH();
       CountH = 0;
 
       // Check stage 3
-      if(f <= finFval) STG = 4;
+      if (f <= finFval) STG = 4;
 
       // Production run: Hist Output RESTMD
       m = istep % PRNFRQ;
-      if( (m == 0) && (comm->me == 0) ) {
-          for(int i=0; i<N; i++) fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin+Emin), Hist[i], PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
-          fprintf(fp_whpnm,"\n\n");
+      if ((m == 0) && (comm->me == 0)) {
+        for (int i=0; i<N; i++) 
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin+Emin), Hist[i],\
+              PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
+        fprintf(fp_whpnm,"\n\n");
       }
     } // if((m == 0) && (RE_flag == 1))
   } // if(STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
-  // If STMD, run until histogram is flat, then reduce f value until <= 1.000001, else if RESTMD, reduce every TSC2 steps
-  if(STG == 2) {
+  // If STMD, run until histogram is flat, then reduce f value 
+  // until <= 1.000001, else if RESTMD, reduce every TSC2 steps
+  if (STG == 2) {
     m = istep % TSC2;
-    if((m == 0) && (RE_flag == 0)) { // If STMD...
-      if(stmd_logfile) fprintf(logfile,"STMD STAGE 2\nSTMD STG2: CHK HIST istep= %i  TSC2= %i\n",istep,TSC2);
+    
+    // If STMD...
+    if ((m == 0) && (RE_flag == 0)) { 
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD STAGE 2\nSTMD STG2: CHK HIST istep= %i  "
+            "TSC2= %i\n",istep,TSC2);
       HCHK();
-      if(stmd_logfile) fprintf(logfile,"STMD STG2: SWfold= %i SWf= %i\n",SWfold,SWf);
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD STG2: SWfold= %i SWf= %i\n",SWfold,SWf);
 
       // F value update
-      if(SWfold != SWf) {
-	if(stmd_logfile) fprintf(logfile,"STMD STG2: f= %f  df= %f\n",f,df);
-	f = sqrt(f);
-	df = log(f) * 0.5 / double(bin);
-	if(stmd_logfile) {
-	  fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-	  fprintf(logfile,"STMD STG2: STG= %i\n",STG);
-	}
-	SWchk = 1;
-	
-	ResetPH();
-	CountH = 0;
-      } else SWchk++;
-
-      if(stmd_logfile) fprintf(logfile,"STMD SG2 RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  STG= %i\n",
-			      totCi,f,SWf,SWchk,STG);
-
-      if(f <= pfinFval) {
-	STG = 3;
-	CountPH = 0;
-	if(stmd_logfile) {
-	  fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-	  fprintf(logfile,"STMD STG2: STG= %i T= %f\n",STG,T);
-	}
-	SWchk = 1;
-	
-	ResetPH();
-	CountH = 0;
-      }
-      
-    } // if((m == 0) && (RE_flag == 0))
-
-    if((m == 0) && (RE_flag == 1)) { // If RESTMD...
-        if(stmd_logfile) fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
-        if(istep != 0) f = sqrt(f);
+      if (SWfold != SWf) {
+        if ((stmd_logfile) && (stmd_debug))
+          fprintf(logfile,"STMD STG2: f= %f  df= %f\n",f,df);
+        f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
-        if(f <= pfinFval) {
-            STG = 3;
-            CountPH = 0;
+        if ((stmd_logfile) && (stmd_debug)) {
+          fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG2: STG= %i\n",STG);
         }
-	    if(stmd_logfile) {
-	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
-	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
-
+        
+        SWchk = 1;
         ResetPH();
         CountH = 0;
+      } else SWchk++;
+      
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD SG2 RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+            "STG= %i\n",totCi,f,SWf,SWchk,STG);
+
+      if (f <= pfinFval) {
+        STG = 3;
+        CountPH = 0;
+        if (stmd_logfile) {
+          fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG2: STG= %i T= %f\n",STG,T);
         }
-	} // if((m == 0) && (RE_flag == 1)) 
+        SWchk = 1;
+        ResetPH();
+        CountH = 0;
+      }      
+    } // if((m == 0) && (RE_flag == 0))
+
+    // If RESTMD...
+    if ((m == 0) && (RE_flag == 1)) { 
+        if ((stmd_logfile) && (stmd_debug))
+          fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
+        if (istep != 0) f = sqrt(f);
+        df = log(f) * 0.5 / double(bin);
+        if (f <= pfinFval) {
+          STG = 3;
+          CountPH = 0;
+        }
+	    if ((stmd_logfile) && (stmd_debug)) {
+	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
+	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
+      }
+      
+      ResetPH();
+      CountH = 0;
+	  } // if((m == 0) && (RE_flag == 1)) 
 
   } // if(STG == 2)
 
   // STG1 START: Digging and chk stage on STG1
   // Run until lowest temperature sampled
-  if(STG == 1) {
+  if (STG == 1) {
     m = istep % TSC1;
-    if(m == 0) {
-      if(stmd_logfile) {
-	fprintf(logfile,"STMD STAGE 1\n");
-	fprintf(screen,"STMD STAGE 1\n");
-	fprintf(logfile,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
-	fprintf(screen,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
+    if (m == 0) {
+      if (stmd_logfile) {
+        fprintf(logfile,"STMD STAGE 1\n");
+        fprintf(screen,"STMD STAGE 1\n");
+        fprintf(logfile,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
+        fprintf(screen,"STMD STAGE1 DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
       }
-      
+
       dig();
       TCHK();
 
-      if(stmd_logfile) fprintf(logfile,"STMD STG1: NEXT STG= %i\n",STG);
+      if ((stmd_logfile) && (stmd_debug))
+        fprintf(logfile,"STMD STG1: NEXT STG= %i\n",STG);
 
       // Histogram reset
-      if(STG > 1) {
-	ResetPH();
-	CountH = 0;
+      if (STG > 1) {
+        ResetPH();
+        CountH = 0;
       }
     } // if(m == 0) 
-  } // if(STG == 1) {
+  } // if(STG == 1) 
 
   // Yval output
   m = istep % PRNFRQ;
-  if( (m == 0) && (comm->me == 0) ) {
-    for(int i=0; i<N; i++) fprintf(fp_wtnm,"%i %f %f %f %i\n", i, (i*bin)+Emin, Y2[i]*ST, Y2[i], totCi);
+  if ((m == 0) && (comm->me == 0)) {
+    for (int i=0; i<N; i++) 
+      fprintf(fp_wtnm,"%i %f %f %f %i\n", i,(i*bin)+Emin,Y2[i]*ST,Y2[i],totCi);
     fprintf(fp_wtnm,"\n\n");
   }
 
   iworld = universe->iworld;
-
   // Write restart info to external file
-  int r = istep % RSTFRQ;
-  if( (r == 0) && (comm->me == 0) && (Count > 0)) {
+  m = istep % RSTFRQ;
+  if ((m == 0) && (comm->me == 0) && (Count > 0)) {
+    int k = 0;
+    int numb = 13;
+    int nsize = 3*N + numb;
+    double *list;
+    memory->create(list,nsize,"stmd:list");
 
-      int k = 0;
-      int numb = 13;
-      int nsize = 3*N + numb;
-      double *list;
-      memory->create(list,nsize,"stmd:list");
+    //list[k++] = N;
+    list[k++] = STG;
+    list[k++] = f;
+    list[k++] = CountH;
+    //list[k++] = df;
+    list[k++] = SWf;
+    list[k++] = SWfold;
+    list[k++] = SWchk;
+    list[k++] = Count;
+    list[k++] = totCi;
+    list[k++] = CountPH;
+    //list[k++] = TSC1; // Control these by LAMMPS input file
+    //list[k++] = TSC2;
+    //list[k++] = Gamma;
+    //list[k++] = T0;
+    //list[k++] = ST;
+    list[k++] = T1;
+    list[k++] = T2;
+    list[k++] = CTmin;
+    list[k++] = CTmax;
 
-      //list[k++] = N;
-      list[k++] = STG;
-      list[k++] = f;
-      list[k++] = CountH;
-      //list[k++] = df;
-      list[k++] = SWf;
-      list[k++] = SWfold;
-      list[k++] = SWchk;
-      list[k++] = Count;
-      list[k++] = totCi;
-      list[k++] = CountPH;
-      //list[k++] = TSC1; // Control these by LAMMPS input file
-      //list[k++] = TSC2;
-      //list[k++] = Gamma;
-      //list[k++] = T0;
-      //list[k++] = ST;
-      list[k++] = T1;
-      list[k++] = T2;
-      list[k++] = CTmin;
-      list[k++] = CTmax;
-      //list[k++] = iworld;
-      for (int i=0; i<N; i++) {
-          list[k++] = Y2[i];
-      }
-      for (int i=0; i<N; i++) {
-          list[k++] = Htot[i];
-      }
-      for (int i=0; i<N; i++) {
-          list[k++] = PROH[i];
-      }
+    for (int i=0; i<N; i++) 
+      list[k++] = Y2[i];
+    for (int i=0; i<N; i++) 
+      list[k++] = Htot[i];
+    for (int i=0; i<N; i++) 
+      list[k++] = PROH[i];
 
-      // wipe file contents...
-      char filename[256];
-      char walker[256];
-      sprintf(walker,"%i",iworld);
-      strcpy(filename,dir_output);
-      strcat(filename,"/oREST.");
-      strcat(filename,walker);
-      strcat(filename,".d");
-      freopen(filename,"w",fp_orest);
+    // wipe file contents...
+    char filename[256];
+    char walker[256];
+    sprintf(walker,"%i",iworld);
+    strcpy(filename,dir_output);
+    strcat(filename,"/oREST.");
+    strcat(filename,walker);
+    strcat(filename,".d");
+    freopen(filename,"w",fp_orest);
 
-      //fprintf(fp_orest,"STMD Output Restart Information, Step: %i, nbins: %i\n",istep,N);
-      for(int i=0; i<numb; i++) fprintf(fp_orest,"%f\n",list[i]);
-      for(int i=numb; i<N+numb; i++) fprintf(fp_orest,"%f ",list[i]);
-      fprintf(fp_orest,"\n");
-      for(int i=N+numb; i<2*N+numb; i++) fprintf(fp_orest,"%f ",list[i]);
-      fprintf(fp_orest,"\n");
-      for(int i=2*N+numb; i<nsize; i++) fprintf(fp_orest,"%f ",list[i]);
-      fprintf(fp_orest,"\n");
+    for (int i=0; i<numb; i++) 
+      fprintf(fp_orest,"%f\n",list[i]);
+    for (int i=numb; i<N+numb; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
+    for (int i=N+numb; i<2*N+numb; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
+    for (int i=2*N+numb; i<nsize; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
 
-      memory->destroy(list);
+    memory->destroy(list);
   }
 }
 

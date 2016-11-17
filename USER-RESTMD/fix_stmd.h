@@ -13,7 +13,7 @@
 
 #ifdef FIX_CLASS
 
-FixStyle(stmd,FixSTMD)
+FixStyle(stmd,FixStmd)
 
 #else
 
@@ -24,10 +24,10 @@ FixStyle(stmd,FixSTMD)
 
 namespace LAMMPS_NS {
 
-class FixSTMD : public Fix {
+class FixStmd : public Fix {
  public:
-  FixSTMD(class LAMMPS *, int, char **);
-  ~FixSTMD();
+  FixStmd(class LAMMPS *, int, char **);
+  ~FixStmd();
   int setmask();
   void init();
   void setup(int);
@@ -41,19 +41,12 @@ class FixSTMD : public Fix {
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
-  //friend class Temper_STMD;
-
-  // We're just picking on bin as an example, put variables to be
-  // accessible from temperSTMD command here and leave everything
-  // else as private.
 public:
   int bin, STG, N;
   double T, ST, f, T1, T2;
   int me_temp;
   
 private:
-  // arguments of fix; these variables were initialized in charmm.inp
-
   //  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
   int RSTFRQ, PRNFRQ, TSC1, TSC2;
   int OREST; // 0 for new run, 1 for restart
@@ -91,7 +84,6 @@ private:
   void ResetPH();           // Translation of stdm.f::stmdResetPH()
   void TCHK();              // Translation of stmd.f::stmdTCHK()
   void HCHK();              // Translation of stmd.f::stmdHCHK()
-  //void OREST();             // Translation of stmd.f::stmdOREST()
   void MAIN(int, double);   // Translation of stmd.f::stmdMAIN()
 
   int pe_compute_id;
