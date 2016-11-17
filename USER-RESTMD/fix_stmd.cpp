@@ -142,10 +142,6 @@ void FixSTMD::init()
   char walker[256]; 
   sprintf(walker,"%i",iworld);
 
-  // These are all other variables initialized in stmd.f::stmdcntrl()
-  MODI    = 0; // Value of MODI never changes and only used in one spot
-  // Initialization from stmd.f::stmdinitrans()
-
   if(OREST) {
     // Check if file exists/has data, otherwise exit!
     char filename[256];
@@ -212,8 +208,6 @@ void FixSTMD::init()
   finFval  = 1.0000001;
   pfinFval = 1.000001;
   HCKtol   = 0.2;
-  multi    = 1.0;
-  dymT     = 0.0;
 
   QREST = 1;
   QEXPO = 0;
@@ -254,8 +248,6 @@ void FixSTMD::init()
   T2 = TH / ST;
   CTmin = (TL + CutTmin) / ST;
   CTmax = (TH - CutTmax) / ST;
-  if(dymT >= 1.0) scaleT = sqrt(T1);
-  else scaleT = 1.0;
 
   memory->grow(Y1, N, "FixSTMD:Y1");
   memory->grow(Y2, N, "FixSTMD:Y2");
@@ -272,11 +264,6 @@ void FixSTMD::init()
     PROH[i] = 0;
     Prob[i] = 0.0;
   }
-
-
-  if (MODI >= 1)
-    for(int i=0; i<N; i++) 
-		  if(Y2[i] <= T1) Y2[i] = T1;
 
   // Search for pe compute, otherwise create a new one
   pe_compute_id = -1;

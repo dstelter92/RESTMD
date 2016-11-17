@@ -87,15 +87,11 @@ void TemperStmd::command(int narg, char **arg )
   // Set pointer to stmd fix
   fix_stmd = (FixSTMD*)(modify->fix[whichfix]);
 
-  //bin = atoi(arg[4]);
   seed_swap = force->inumeric(FLERR,arg[4]);
   seed_boltz = force->inumeric(FLERR,arg[5]);
-  EX_flag = atoi(arg[6]); //exchange flag, 0 if swap off (run many replicas without exchange), 1 if swap on.
 
-  // Mess with something to see change in log file
-  //bin = fix_stmd->bin;
-  //if (fix_stmd->bin != bin)
-  //    error->universe_all(FLERR,"Bin size not the same");
+  //exchange flag, 0 if swap off (run many replicas without exchange), 1 if swap on.
+  EX_flag = atoi(arg[6]); 
 
   if (fix_stmd->ST != temp)
       error->universe_all(FLERR,"Kinetic temperatures not the same, use homogeneous temperature control");

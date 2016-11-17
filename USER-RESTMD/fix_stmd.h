@@ -41,40 +41,35 @@ class FixStmd : public Fix {
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
-public:
-  int bin, STG, N;
+ public:
+  int STG, N;
   double T, ST, f, T1, T2;
-  int me_temp;
   
-private:
-  //  int RSTFRQ, bin, PRNFRQ, TSC1, TSC2, OREST;
-  int RSTFRQ, PRNFRQ, TSC1, TSC2;
+ private:
+  int bin,RSTFRQ,PRNFRQ,TSC1,TSC2;
   int OREST; // 0 for new run, 1 for restart
-  int RE_flag; // Determines if f is reduced by HCHK() (RE_flag == 0) or by constant TSC2 (RE_flag == 1)
+  int RE_flag; // Determines if f is reduced by HCHK() or by constant TSC2 
 
-  double initf, Emin, Emax;
+  double initf,Emin,Emax;
   char dir_output[256]; // optional argument for output directory
   int iworld,nworlds; // world info
-  // other variables initialized in stmd.f::stmdcntrl()
-  int MODI;
 
-  char filename_wtnm[256], filename_whnm[256], filename_whpnm[256], filename_orest[256];
+  char filename_wtnm[256],filename_whnm[256],filename_whpnm[256],filename_orest[256];
   FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
-  double CutTmin, CutTmax, finFval, pfinFval, HCKtol, multi, dymT;
-  int QREST, QEXPO, QEXP1;
+  double CutTmin,CutTmax,finFval,pfinFval,HCKtol;
+  int QREST,QEXPO,QEXP1;
 
-  int BinMin, BinMax;
-  int SWf, Count, CountH, totC, totCi, SWchk, CountPH, SWfold;
+  int BinMin,BinMax;
+  int SWf,Count,CountH,totC,totCi,SWchk,CountPH,SWfold;
 
-  double * Elist;
-  double df, T0, TL, TH, CTmin, CTmax, scaleT;
+  double df,T0,TL,TH,CTmin,CTmax;
   double Gamma;
 
   double * Y1, * Prob;
   int * Hist, * Htot, * PROH;
 
-  int stmd_logfile, stmd_debug;
+  int stmd_logfile,stmd_debug;
 
   void dig();               // Translation of stmd.f::stmddig()
   int Yval(double);         // Translation of stmd.f::stmdYval()
