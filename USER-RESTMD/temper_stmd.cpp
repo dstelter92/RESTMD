@@ -85,7 +85,7 @@ void TemperStmd::command(int narg, char **arg )
     error->universe_all(FLERR,"Tempering fix ID is not defined");
 
   // Set pointer to stmd fix
-  fix_stmd = (FixSTMD*)(modify->fix[whichfix]);
+  fix_stmd = (FixStmd*)(modify->fix[whichfix]);
 
   seed_swap = force->inumeric(FLERR,arg[4]);
   seed_boltz = force->inumeric(FLERR,arg[5]);
