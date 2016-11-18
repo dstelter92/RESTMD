@@ -88,7 +88,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   TSC2   = atof(arg[11]);
   ST     = atof(arg[12]);       // This value should be consistent with target temperature of thermostat fix
   PRNFRQ = atoi(arg[13]);
-  RE_flag = atoi(arg[14]);      // 0 for hckh() to reduce f-val, 1 for constant reduction
+  f_flag = atoi(arg[14]);      // 0 for hckh() to reduce f-val, 1 for constant reduction
   OREST  = atoi(arg[15]);       // 0 for new run, 1 for restart
   
   // If RESTMD, check with temper_stmd to ensure walkers are the same.
@@ -209,9 +209,7 @@ void FixStmd::init()
   pfinFval = 1.000001;
   HCKtol   = 0.2;
 
-  QREST = 1;
   QEXPO = 0;
-  QEXP1 = 0;
 
   BinMin = round(Emin / bin);
   BinMax = round(Emax / bin);
@@ -638,7 +636,7 @@ void FixStmd::MAIN(int istep, double potE)
     m = istep % TSC2;
 
     // STMD, reduce f based on histogram check
-    if ((m == 0) && (RE_flag == 0)) { 
+    if ((m == 0) && (f_flag == 0)) { 
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"STMD STAGE 3\nSTMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
       HCHK();
@@ -672,14 +670,14 @@ void FixStmd::MAIN(int istep, double potE)
       m = istep % PRNFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++)
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\ 
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
               Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (RE_flag == 0))
+    } // if((m == 0) && (f_flag == 0))
 
     // RESTMD, reduce f to sqrt(f) every TSC2 steps
-    if ((m == 0) && (RE_flag == 1)) { 
+    if ((m == 0) && (f_flag != 0)) { 
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
       f = sqrt(f);
@@ -704,7 +702,7 @@ void FixStmd::MAIN(int istep, double potE)
               PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (RE_flag == 1))
+    } // if((m == 0) && (f_flag == 1))
   } // if(STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
@@ -714,7 +712,7 @@ void FixStmd::MAIN(int istep, double potE)
     m = istep % TSC2;
     
     // If STMD...
-    if ((m == 0) && (RE_flag == 0)) { 
+    if ((m == 0) && (f_flag == 0)) { 
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"STMD STAGE 2\nSTMD STG2: CHK HIST istep= %i  "
             "TSC2= %i\n",istep,TSC2);
@@ -745,7 +743,7 @@ void FixStmd::MAIN(int istep, double potE)
       if (f <= pfinFval) {
         STG = 3;
         CountPH = 0;
-        if (stmd_logfile) {
+        if ((stmd_logfile) && (stmd_debug)) {
           fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
           fprintf(logfile,"STMD STG2: STG= %i T= %f\n",STG,T);
         }
@@ -753,10 +751,10 @@ void FixStmd::MAIN(int istep, double potE)
         ResetPH();
         CountH = 0;
       }      
-    } // if((m == 0) && (RE_flag == 0))
+    } // if((m == 0) && (f_flag == 0))
 
     // If RESTMD...
-    if ((m == 0) && (RE_flag == 1)) { 
+    if ((m == 0) && (f_flag == 1)) { 
         if ((stmd_logfile) && (stmd_debug))
           fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
         if (istep != 0) f = sqrt(f);
@@ -772,7 +770,36 @@ void FixStmd::MAIN(int istep, double potE)
       
       ResetPH();
       CountH = 0;
-	  } // if((m == 0) && (RE_flag == 1)) 
+	  } // if((m == 0) && (f_flag == 1)) 
+    
+    // RESTMD, alternative f-reduction scheme
+    if ((m == 0) && (f_flag == 2)) { 
+        if ((stmd_logfile) && (stmd_debug))
+          fprintf(logfile,"RESTMD STAGE 2\nRESTMD STG2: istep= %i  TSC2= %i\n",istep,TSC2);
+        // Reduce f by 10%, if above cutoff
+        // otherwise, reduce by sqrt(f) 
+        double reduce_val = 0.1;
+        if (istep != 0) {
+          if (f > (1+(2*reduce_val)))
+            f = f - (reduce_val*f);
+          else f = sqrt(f);
+        }
+        if (f <= 1.0)
+          error->all(FLERR,"f-value is less than unity");
+
+        df = log(f) * 0.5 / double(bin);
+        if (f <= pfinFval) {
+          STG = 3;
+          CountPH = 0;
+        }
+	    if ((stmd_logfile) && (stmd_debug)) {
+	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
+	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
+      }
+      
+      ResetPH();
+      CountH = 0;
+	  } // if((m == 0) && (f_flag == 2)) 
 
   } // if(STG == 2)
 

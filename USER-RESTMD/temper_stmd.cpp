@@ -95,7 +95,8 @@ void TemperStmd::command(int narg, char **arg )
   EX_flag = atoi(arg[6]); 
 
   if (fix_stmd->ST != temp)
-      error->universe_all(FLERR,"Kinetic temperatures not the same, use homogeneous temperature control");
+      error->universe_all(FLERR,"Kinetic temperatures not "
+          "the same, use homogeneous temperature control");
     
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
@@ -212,7 +213,8 @@ void TemperStmd::command(int narg, char **arg )
   MPI_Reduce(&stg_flag_me,&stg_flag,1,MPI_INT,MPI_SUM,0,universe->uworld);
       
   if ((me_universe == 0) && (stg_flag > (universe->nprocs - nworlds)))
-    error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges turned off");
+    error->universe_warn(FLERR,"RESTMD still in STAGE1, ensure exchanges "
+        "turned off");
 
   if (me_universe == 0 && universe->uscreen)
     fprintf(universe->uscreen,"Setting up RESTMD ...\n");
@@ -331,7 +333,7 @@ void TemperStmd::command(int narg, char **arg )
     // get information that is being swapped, pack into local_values, gather, then bcast to all worlds
         
     // all procs pack values for walker into local array
-    for(int i=0; i<fix_stmd->N; i++) local_values[i] = fix_stmd->Y2[i];
+    for (int i=0; i<fix_stmd->N; i++) local_values[i] = fix_stmd->Y2[i];
     local_values[fix_stmd->N] = fix_stmd->T1; //TLOW
     local_values[fix_stmd->N+1] = fix_stmd->T2; //THIGH
 
@@ -362,7 +364,7 @@ void TemperStmd::command(int narg, char **arg )
         memcpy(&local_values[0],&global_values[indx],nlocal_values*sizeof(double));
 
         // update fix_stmd with swapped values
-        for(int i=0; i<fix_stmd->N; i++) fix_stmd->Y2[i] = local_values[i];
+        for (int i=0; i<fix_stmd->N; i++) fix_stmd->Y2[i] = local_values[i];
         fix_stmd->T1 = local_values[fix_stmd->N];
         fix_stmd->T2 = local_values[fix_stmd->N+1];
         

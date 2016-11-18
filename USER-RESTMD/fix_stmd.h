@@ -36,40 +36,40 @@ class FixStmd : public Fix {
   void min_post_force(int);
   void end_of_step();
   double memory_usage();
-  double * Y2;
 
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
- public:
+
+  // Public for access by temper_grem
+  double * Y2;
   int STG, N;
   double T, ST, f, T1, T2;
   
  private:
   int bin,RSTFRQ,PRNFRQ,TSC1,TSC2;
-  int OREST; // 0 for new run, 1 for restart
-  int RE_flag; // Determines if f is reduced by HCHK() or by constant TSC2 
+  int OREST;           // 0 for new run, 1 for restart
+  int f_flag;         // Determines type of f-reduction
+  int iworld,nworlds;  // world info
+  int BinMin,BinMax;
+  int SWf,Count,CountH,totC,totCi,SWchk,CountPH,SWfold;
+  int QEXPO;
+  int stmd_logfile,stmd_debug;
+  int pe_compute_id;
 
-  double initf,Emin,Emax;
+  double Emin,Emax;
+  double initf,df;     
+  double CutTmin,CutTmax,finFval,pfinFval,HCKtol;
+  double T0,TL,TH,CTmin,CTmax;
+  double Gamma;
+
+  char * id_pe;
   char dir_output[256]; // optional argument for output directory
-  int iworld,nworlds; // world info
-
   char filename_wtnm[256],filename_whnm[256],filename_whpnm[256],filename_orest[256];
   FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
-  double CutTmin,CutTmax,finFval,pfinFval,HCKtol;
-  int QREST,QEXPO,QEXP1;
-
-  int BinMin,BinMax;
-  int SWf,Count,CountH,totC,totCi,SWchk,CountPH,SWfold;
-
-  double df,T0,TL,TH,CTmin,CTmax;
-  double Gamma;
-
   double * Y1, * Prob;
   int * Hist, * Htot, * PROH;
-
-  int stmd_logfile,stmd_debug;
 
   void dig();               // Translation of stmd.f::stmddig()
   int Yval(double);         // Translation of stmd.f::stmdYval()
@@ -81,8 +81,6 @@ class FixStmd : public Fix {
   void HCHK();              // Translation of stmd.f::stmdHCHK()
   void MAIN(int, double);   // Translation of stmd.f::stmdMAIN()
 
-  int pe_compute_id;
-  char * id_pe;
 };
 
 }
