@@ -101,7 +101,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Hist = Htot = PROH = NULL;
 
   stmd_logfile = stmd_debug = 0;
-  if(comm->me == 0 && logfile) stmd_logfile = 1;
+  if ((comm->me == 0) && (logfile)) stmd_logfile = 1;
 
   // DEBUG FLAG
   //stmd_debug = 1;
@@ -142,7 +142,7 @@ void FixStmd::init()
   char walker[256]; 
   sprintf(walker,"%i",iworld);
 
-  if(OREST) {
+  if (OREST) {
     // Check if file exists/has data, otherwise exit!
     char filename[256];
     strcpy(filename,dir_output);
@@ -159,9 +159,9 @@ void FixStmd::init()
     }
   }
 
-  if(comm->me == 0) {
+  if (comm->me == 0) {
     char filename[256];
-    if(!fp_wtnm) {
+    if (!fp_wtnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WT.");
       strcat(filename,walker);
@@ -169,7 +169,7 @@ void FixStmd::init()
       strcpy(filename_wtnm,filename);
       fp_wtnm  = fopen(filename,"w");
     }
-    if(!fp_whnm) {
+    if (!fp_whnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WH.");
       strcat(filename,walker);
@@ -177,7 +177,7 @@ void FixStmd::init()
       strcpy(filename_whnm,filename);
       fp_whnm  = fopen(filename,"w");
     }
-    if(!fp_whpnm) {
+    if (!fp_whpnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WHP.");
       strcat(filename,walker);
@@ -185,7 +185,7 @@ void FixStmd::init()
       strcpy(filename_whpnm,filename);
       fp_whpnm = fopen(filename,"w");
     }
-    if( (!fp_orest) && (!OREST) ) {
+    if ((!fp_orest) && (!OREST)) {
       strcpy(filename,dir_output);
       strcat(filename,"/oREST.");
       strcat(filename,walker);
@@ -193,7 +193,7 @@ void FixStmd::init()
       strcpy(filename_orest,filename);
       fp_orest  = fopen(filename,"w");
     }
-    if( (!fp_orest) && (OREST) ) {
+    if ((!fp_orest) && (OREST)) {
       strcpy(filename,dir_output);
       strcat(filename,"/oREST.");
       strcat(filename,walker);
@@ -215,12 +215,12 @@ void FixStmd::init()
   BinMax = round(Emax / bin);
 
   // Exponential energy bin setup
-  // if(QEXPO) {
+  // if (QEXPO) {
   //   exv = exfB - exfA;
   //   exc = -exv / log(exal) / exbe;
   //   exb = (exeB - exeA) / (exp(exfB / exc) - exp(exfA / exc));
   //   exa = exeB - exb * exp(exfB / exc);
-  //   if((Emin - exa) / exb <= 0.0) error->warning(FLERR,"WARNNING!!! EXPONENT ENE BIN SETUP");
+  //   if ((Emin - exa) / exb <= 0.0) error->warning(FLERR,"WARNNING!!! EXPONENT ENE BIN SETUP");
   //   BinMin = round(log((Emin - exa) / exb));
   //   BinMax = round(log((Emax - exa) / exb));
   // }
@@ -306,7 +306,7 @@ void FixStmd::init()
       strcat(filename,".d");
       std::ifstream file(filename);
           
-      for(int i=0; i<nsize; i++) 
+      for (int i=0; i<nsize; i++) 
         file >> list[i];
 
       //int nbins = static_cast<int> (list[k++]);
@@ -356,7 +356,7 @@ void FixStmd::init()
     
   if ((stmd_logfile) && (stmd_debug)) {
     //fprintf(logfile,"STMD Yold(Y1)= ");
-    //for(int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
+    //for (int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
     //fprintf(logfile,"\n");
     fprintf(logfile,"STMD Temperature (Y2)= ");
     for (int i=0; i<N; i++) 
@@ -674,7 +674,7 @@ void FixStmd::MAIN(int istep, double potE)
               Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (f_flag == 0))
+    } // if ((m == 0) && (f_flag == 0))
 
     // RESTMD, reduce f to sqrt(f) every TSC2 steps
     if ((m == 0) && (f_flag != 0)) { 
@@ -702,8 +702,8 @@ void FixStmd::MAIN(int istep, double potE)
               PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if((m == 0) && (f_flag == 1))
-  } // if(STG >= 3)
+    } // if ((m == 0) && (f_flag == 1))
+  } // if (STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
   // If STMD, run until histogram is flat, then reduce f value 
@@ -751,7 +751,7 @@ void FixStmd::MAIN(int istep, double potE)
         ResetPH();
         CountH = 0;
       }      
-    } // if((m == 0) && (f_flag == 0))
+    } // if ((m == 0) && (f_flag == 0))
 
     // If RESTMD...
     if ((m == 0) && (f_flag == 1)) { 
@@ -770,7 +770,7 @@ void FixStmd::MAIN(int istep, double potE)
       
       ResetPH();
       CountH = 0;
-	  } // if((m == 0) && (f_flag == 1)) 
+	  } // if ((m == 0) && (f_flag == 1)) 
     
     // RESTMD, alternative f-reduction scheme
     if ((m == 0) && (f_flag == 2)) { 
@@ -799,9 +799,9 @@ void FixStmd::MAIN(int istep, double potE)
       
       ResetPH();
       CountH = 0;
-	  } // if((m == 0) && (f_flag == 2)) 
+	  } // if ((m == 0) && (f_flag == 2)) 
 
-  } // if(STG == 2)
+  } // if (STG == 2)
 
   // STG1 START: Digging and chk stage on STG1
   // Run until lowest temperature sampled
@@ -826,8 +826,8 @@ void FixStmd::MAIN(int istep, double potE)
         ResetPH();
         CountH = 0;
       }
-    } // if(m == 0) 
-  } // if(STG == 1) 
+    } // if (m == 0) 
+  } // if (STG == 1) 
 
   // Yval output
   m = istep % PRNFRQ;
