@@ -42,29 +42,43 @@ class FixStmd : public Fix {
   void modify_fix(int, double *, char *);
 
   // Public for access by temper_grem
-  double * Y2;
-  int STG, N;
-  double T, ST, f, T1, T2;
+  double * Y2;               // statistical temperature array
+  int STG;                   // stage flag
+  int N;                     // number of bins
+  double T;                  // latest sampled temperature
+  double f;                  // current f-value
+  double ST;                 // kinetic temperature
+  double T1, T2;             // scaled temperature cutoffs
   
  private:
-  int bin,RSTFRQ,PRNFRQ,TSC1,TSC2;
-  int OREST;           // 0 for new run, 1 for restart
-  int f_flag;         // Determines type of f-reduction
-  int iworld,nworlds;  // world info
-  int BinMin,BinMax;
-  int SWf,Count,CountH,totC,totCi,SWchk,CountPH,SWfold;
-  int QEXPO;
+  int bin;                   // binsize
+  int RSTFRQ,PRNFRQ;         // restart and print frequency
+  int TSC1;                  // dig reduction frequency
+  int TSC2;                  // f-reduction frequency
+  int OREST;                 // restart flag, 1 to read restart
+  int f_flag;                // determines type of f-reduction
+  int iworld,nworlds;        // world info
+  int BinMin,BinMax;         // bin info
+  int Count,CountH,CountPH;  // histogram counts   
+  int totC,totCi;            // total counts
+  int SWf,SWchk,SWfold;      // histogram flatness checks
+  int QEXPO;                 // exponetial energy bins
+  
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
 
-  double Emin,Emax;
-  double initf,df;     
-  double CutTmin,CutTmax,finFval,pfinFval,HCKtol;
-  double T0,TL,TH,CTmin,CTmax;
-  double Gamma;
-
+  double Emin,Emax;          // energy range
+  double T0;                 // kinetic temp
+  double TL, TH;             // unscaled lower and upper T cutoff
+  double CTmin,CTmax;        // temperature cutoffs
+  double CutTmin,CutTmax;
+  double finFval,pfinFval;   // f-tolerance for stg 3 and stg 4
+  double initf,df;           // initial-f and delta-f
+  double HCKtol;             // histogram tolerance when chk flatness
+  double Gamma;              // force scaling factor
+  
+  char dir_output[256];      // output directory
   char * id_pe;
-  char dir_output[256]; // optional argument for output directory
   char filename_wtnm[256],filename_whnm[256],filename_whpnm[256],filename_orest[256];
   FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
@@ -96,21 +110,23 @@ Self-explanatory.  Check the input script syntax and compare to the
 documentation for the command.  You can use -echo screen as a
 command-line option when running LAMMPS to see the offending line.
 
-E: Region ID for fix setforce does not exist
+E: Restart file does not exist
 
-Self-explanatory.
+Self-explanatory
 
-E: Variable name for fix setforce does not exist
+E: Currently expecting run_style verlet
 
-Self-explanatory.
+Fix must use run_style verlet
 
-E: Variable for fix setforce is invalid style
+E: Histogram index out of range
 
-Only equal-style variables can be used.
+Sampled enthalpy was outside of energy specified by input file.
+This is usualy caused by either (1) improper inputs or (2) other
+problems in the simulation which cause the energy -> infinity.
 
-E: Cannot use non-zero forces in an energy minimization
+E: f-value is less than unity
 
-Fix setforce cannot be used in this manner.  Use fix addforce
-instead.
+Self-explanatory, f must be *at least* 1.
 
+E: 
 */
