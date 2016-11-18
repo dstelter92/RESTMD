@@ -43,8 +43,8 @@ class TemperStmd : protected Pointers {
   int whichfix;                // index of temperature fix to use
   int fixstyle;                // what kind of temperature fix is used
   int bin, Emin, Emax, BinMin, BinMax;
-  double T_me,T_partner;
-  int current_STG;
+  double T_me,T_partner;       // latest sampled temperture
+  int current_STG;             // current STMD stage
   int EX_flag;                 // controlls if swap is turned OFF/ON (0/1)
 
   int my_set_temp;             // which set temp I am simulating
@@ -87,6 +87,13 @@ E: Tempering fix ID is not defined
 
 The fix ID specified by the temper command does not exist.
 
+E: Kinetic temperatures not the same, use homogeneous temperature
+control
+
+This version uses homogeneous temperature control (HK) for the kinetic
+temperature in each replica. Review http://dx.doi.org/10.1021/jp300366j 
+for details.
+
 E: Invalid frequency in temper command
 
 Nevery must be > 0.
@@ -101,6 +108,10 @@ E: Tempering temperature fix is not valid
 The fix specified by the temper command is not one that controls
 temperature (nvt or langevin).
 
+E: Must use with fix STMD, fix is not valid
+
+Self-explanatory.
+
 E: Too many timesteps
 
 The cummulative timesteps must fit in a 64-bit integer.
@@ -110,12 +121,8 @@ E: Tempering could not find thermo_pe compute
 This compute is created by the thermo command.  It must have been
 explicitly deleted by a uncompute command.
 
-E: Bin size not the same
+W: RESTMD still in STAGE1, ensure exchanges turned off
 
-The bin size for temper and fix_stmd is not the same in the input file.
-
-E: Kinetic temperatures not the same, use homogeneous temperature control
-
-This version uses homogeneous temperature control (HK) for the kinetic temperature in each replica. Review http://dx.doi.org/10.1021/jp300366j for details.
+Replica exchange must be turned off during STG1, use EX_FLAG
 
 */
