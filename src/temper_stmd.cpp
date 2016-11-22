@@ -138,8 +138,8 @@ void TemperStmd::command(int narg, char **arg )
   int nglobal_values = nlocal_values * (nworlds);
 
   double *local_values = global_values = NULL;
-  memory->create(local_values,nlocal_values,"restmd:local_values");
-  memory->create(global_values,nglobal_values,"restmd:global_values");
+  memory->create(local_values,nlocal_values,"temper/stmd:local_values");
+  memory->create(global_values,nglobal_values,"temper/stmd:global_values");
 
   // pe_compute = ptr to thermo_pe compute
   // notify compute it will be called at first swap
@@ -194,6 +194,7 @@ void TemperStmd::command(int narg, char **arg )
   MPI_Bcast(temp2world,nworlds,MPI_INT,0,world);
 
   // if restarting tempering, reset temp target of Fix to current my_set_temp
+  // This should be handled by fix_stmd
   /*
   if (narg == 8) {
     double new_temp = set_temp[my_set_temp];

@@ -13,7 +13,7 @@
 
 #ifdef COMMAND_CLASS
 
-CommandStyle(restmd,TemperStmd)
+CommandStyle(temper/stmd,TemperStmd)
 
 #else
 

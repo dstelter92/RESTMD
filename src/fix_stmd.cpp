@@ -68,8 +68,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 
   global_freq = 1;
   scalar_flag = 1;
-  restart_global = 0;
-  restart_peratom = peratom_flag = 0;
 
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
