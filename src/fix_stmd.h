@@ -49,7 +49,7 @@ class FixStmd : public Fix {
   double f;                 // current f-value
   double ST;                // kinetic temperature
   double T1, T2;            // scaled temperature cutoffs
-  
+
  private:
   int bin;                  // binsize
   int RSTFRQ,PRNFRQ;        // restart and print frequency
@@ -63,7 +63,7 @@ class FixStmd : public Fix {
   int totC,totCi;           // total counts
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int QEXPO;                // exponetial energy bins
-  
+
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
 
@@ -76,7 +76,7 @@ class FixStmd : public Fix {
   double initf,df;          // initial-f and delta-f
   double HCKtol;            // histogram tolerance when chk flatness
   double Gamma;             // force scaling factor
-  
+
   char dir_output[256];     // output directory
   char * id_pe;
   char filename_wtnm[256],filename_whnm[256],filename_whpnm[256],filename_orest[256];
@@ -112,7 +112,7 @@ command-line option when running LAMMPS to see the offending line.
 
 E: Restart file does not exist
 
-Self-explanatory
+Self-explanatory, change oREST flag.
 
 E: Currently expecting run_style verlet
 
