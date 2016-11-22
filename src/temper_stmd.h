@@ -125,4 +125,10 @@ W: RESTMD still in STAGE1, ensure exchanges turned off
 
 Replica exchange must be turned off during STG1, use EX_FLAG
 
+E: f-value between partitions must be equal when tempering
+
+f-value from fix_stmd must be identical in every replica when tempering.
+Before starting a RESTMD simulation, ensure the count in each oREST files are
+set to 0.
+
 */
