@@ -491,6 +491,17 @@ void FixStmd::min_post_force(int vflag)
 }
 
 /* ----------------------------------------------------------------------
+   memory usage of local atom-based array
+------------------------------------------------------------------------- */
+
+double FixStmd::memory_usage()
+{
+  double bytes = 0.0;
+  bytes+= 7 * N * sizeof(double);
+  return bytes;
+}
+
+/* ----------------------------------------------------------------------
    Translation of stmd.f subroutines
 ------------------------------------------------------------------------- */
 
