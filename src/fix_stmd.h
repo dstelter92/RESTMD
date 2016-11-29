@@ -35,7 +35,6 @@ class FixStmd : public Fix {
   void post_force(int);
   void min_post_force(int);
   void end_of_step();
-  double memory_usage();
 
   double compute_scalar();
   double compute_array(int, int);
