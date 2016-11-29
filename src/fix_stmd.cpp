@@ -64,34 +64,48 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
 
   global_freq = 1;
   scalar_flag = 1;
 
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
-  //  a stmd.inp file is probably the best mechanism for input.
+  // a stmd.inp file is probably the best mechanism for input.
   //
-  //  fix fxstmd all stmd RSTFRQ f Tlo Thi Plo Phi binsize 10000 40000 300 PRNFRQ OREST
+  // fix fxstmd all stmd RSTFRQ f_style init_f Tlo Thi Elo Ehi binsize TSC1 TSC2 ST OREST
 
-  RSTFRQ = atoi(arg[3]);        // Probably a good idea to set this equal to restart value in input
-  initf  = atof(arg[4]);
-  TL     = atof(arg[5]);
-  TH     = atof(arg[6]);
-  Emin   = atof(arg[7]);
-  Emax   = atof(arg[8]);
-  bin    = atoi(arg[9]);
-  TSC1   = atof(arg[10]);
-  TSC2   = atof(arg[11]);
-  ST     = atof(arg[12]);       // This value should be consistent with target temperature of thermostat fix
-  PRNFRQ = atoi(arg[13]);
-  f_flag = atoi(arg[14]);      // 0 for hckh() to reduce f-val, 1 for constant reduction
-  OREST  = atoi(arg[15]);       // 0 for new run, 1 for restart
-  
-  // If RESTMD, check with temper_stmd to ensure walkers are the same.
-  // Do this in temper_stmd...
-  
+  // Probably a good idea to set this equal to restart value in input
+  RSTFRQ = atoi(arg[3]);      
+
+  // Setup type of f-reduction
+  f_flag = -1;
+  if (strcmp(arg[4],"hchk") == 0) 
+    f_flag = 0;
+  else if (strcmp(arg[4],"sqrt") == 0)
+    f_flag = 1;
+  else if (strcmp(arg[4],"constant") == 0)
+    f_flag = 2;
+  else
+    error->all(FLERR,"STMD: invalid f-reduction scheme");
+
+  // Only used initially, controlled by restart
+  initf  = atof(arg[5]);
+
+  TL     = atof(arg[6]);
+  TH     = atof(arg[7]);
+  Emin   = atof(arg[8]);
+  Emax   = atof(arg[9]);
+  bin    = atoi(arg[10]);
+  TSC1   = atof(arg[11]);
+  TSC2   = atof(arg[12]);
+
+  // This value should be consistent with target temperature of thermostat fix
+  ST     = atof(arg[13]);
+
+  // 0 for new run, 1 for restart
+  OREST  = atoi(arg[14]);
+
   // Make dir_output hard coded to local dir
   strcpy(dir_output,"./");
   
@@ -140,19 +154,19 @@ void FixStmd::init()
   char walker[256]; 
   sprintf(walker,"%i",iworld);
 
+  // Check if file exists/has data, otherwise exit!
   if (OREST) {
-    // Check if file exists/has data, otherwise exit!
     char filename[256];
     strcpy(filename,dir_output);
     strcat(filename,"/oREST.");
     strcat(filename,walker);
     strcat(filename,".d");
     strcpy(filename_orest,filename);
-
     if (fp_orest = fopen(filename, "r")) {
       fclose(fp_orest);
     } else {
-      if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
+      if (nworlds > 1) 
+        error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
       else error->all(FLERR,"STMD: Restart file does not exist\n");
     }
   }
@@ -307,11 +321,9 @@ void FixStmd::init()
       for (int i=0; i<nsize; i++) 
         file >> list[i];
 
-      //int nbins = static_cast<int> (list[k++]);
       STG = static_cast<int> (list[k++]);
       f = list[k++];
       CountH = static_cast<int> (list[k++]);
-      //df = list[k++];
       SWf = static_cast<int> (list[k++]);
       SWfold = static_cast<int> (list[k++]);
       SWchk = static_cast<int> (list[k++]);
@@ -320,9 +332,6 @@ void FixStmd::init()
       CountPH = static_cast<int> (list[k++]);
       //TSC1 = static_cast<int> (list[k++]);
       //TSC2 = static_cast<int> (list[k++]);
-      //Gamma = list[k++];
-      //T0 = list[k++];
-      //ST = list[k++];
       T1 = list[k++];
       T2 = list[k++];
       CTmin = list[k++];
@@ -338,20 +347,17 @@ void FixStmd::init()
       memory->destroy(list);
     }
   }
-  
-  // Write values of all paramters to logfile
+
   if ((stmd_logfile) && (nworlds > 1)) {
     fprintf(logfile,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
-
-  if ((stmd_logfile) && (nworlds == 1)) {
-    fprintf(logfile,"STMD Check initial values...\n");
-    fprintf(logfile,"STMD STAGE= %i #bins= %i  binsize %i\n",STG, N, bin); // diffE was included in stmd.f, but don't know what that is
-    fprintf(screen,"STMD Check initial values...\n");
-    fprintf(screen,"STMD STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin);
+  if (stmd_logfile) {
+    fprintf(logfile,"STMD: STAGE= %i #bins= %i  binsize %i\n",STG, N, bin); 
+    fprintf(screen,"STMD: STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin);
   }
-    
+
+  // Write values of all paramters to logfile
   if ((stmd_logfile) && (stmd_debug)) {
     //fprintf(logfile,"STMD Yold(Y1)= ");
     //for (int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
@@ -417,6 +423,64 @@ void FixStmd::end_of_step()
   // Force computation of energies on next step
   modify->compute[pe_compute_id]->invoked_flag |= INVOKED_SCALAR;
   modify->addstep_compute(update->ntimestep + 1);
+  
+  //iworld = universe->iworld;
+  // Write restart info to external file
+  int m = (update->ntimestep) % RSTFRQ;
+  if ((m == 0) && (comm->me == 0)) {
+    int k = 0;
+    int numb = 13;
+    int nsize = 3*N + numb;
+    double *list;
+    memory->create(list,nsize,"stmd:list");
+
+    list[k++] = STG;
+    list[k++] = f;
+    list[k++] = CountH;
+    list[k++] = SWf;
+    list[k++] = SWfold;
+    list[k++] = SWchk;
+    list[k++] = Count;
+    list[k++] = totCi;
+    list[k++] = CountPH;
+    //list[k++] = TSC1; // Control these by LAMMPS input file
+    //list[k++] = TSC2;
+    list[k++] = T1;
+    list[k++] = T2;
+    list[k++] = CTmin;
+    list[k++] = CTmax;
+
+    for (int i=0; i<N; i++) 
+      list[k++] = Y2[i];
+    for (int i=0; i<N; i++) 
+      list[k++] = Htot[i];
+    for (int i=0; i<N; i++) 
+      list[k++] = PROH[i];
+
+    // wipe file contents...
+    char filename[256];
+    char walker[256];
+    sprintf(walker,"%i",iworld);
+    strcpy(filename,dir_output);
+    strcat(filename,"/oREST.");
+    strcat(filename,walker);
+    strcat(filename,".d");
+    freopen(filename,"w",fp_orest);
+
+    for (int i=0; i<numb; i++) 
+      fprintf(fp_orest,"%f\n",list[i]);
+    for (int i=numb; i<N+numb; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
+    for (int i=N+numb; i<2*N+numb; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
+    for (int i=2*N+numb; i<nsize; i++) 
+      fprintf(fp_orest,"%f ",list[i]);
+    fprintf(fp_orest,"\n");
+
+    memory->destroy(list);
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -621,7 +685,7 @@ void FixStmd::MAIN(int istep, double potE)
   }
 
   // Hist Output
-  int m = istep % PRNFRQ;
+  int m = istep % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
     for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
         "\n", i, (i*bin)+Emin, Hist[i], Htot[i], Y2[i], CountH, totCi, f);
@@ -665,7 +729,7 @@ void FixStmd::MAIN(int istep, double potE)
       if (f <= finFval) STG = 4;
 
       // Production run: Hist Output STMD
-      m = istep % PRNFRQ;
+      m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++)
           fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
@@ -675,7 +739,7 @@ void FixStmd::MAIN(int istep, double potE)
     } // if ((m == 0) && (f_flag == 0))
 
     // RESTMD, reduce f to sqrt(f) every TSC2 steps
-    if ((m == 0) && (f_flag != 0)) { 
+    if ((m == 0) && (f_flag > 0)) { 
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
       f = sqrt(f);
@@ -693,7 +757,7 @@ void FixStmd::MAIN(int istep, double potE)
       if (f <= finFval) STG = 4;
 
       // Production run: Hist Output RESTMD
-      m = istep % PRNFRQ;
+      m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++) 
           fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin+Emin), Hist[i],\
@@ -828,75 +892,13 @@ void FixStmd::MAIN(int istep, double potE)
   } // if (STG == 1) 
 
   // Yval output
-  m = istep % PRNFRQ;
+  m = istep % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
     for (int i=0; i<N; i++) 
       fprintf(fp_wtnm,"%i %f %f %f %i\n", i,(i*bin)+Emin,Y2[i]*ST,Y2[i],totCi);
     fprintf(fp_wtnm,"\n\n");
   }
 
-  iworld = universe->iworld;
-  // Write restart info to external file
-  m = istep % RSTFRQ;
-  if ((m == 0) && (comm->me == 0) && (Count > 0)) {
-    int k = 0;
-    int numb = 13;
-    int nsize = 3*N + numb;
-    double *list;
-    memory->create(list,nsize,"stmd:list");
-
-    //list[k++] = N;
-    list[k++] = STG;
-    list[k++] = f;
-    list[k++] = CountH;
-    //list[k++] = df;
-    list[k++] = SWf;
-    list[k++] = SWfold;
-    list[k++] = SWchk;
-    list[k++] = Count;
-    list[k++] = totCi;
-    list[k++] = CountPH;
-    //list[k++] = TSC1; // Control these by LAMMPS input file
-    //list[k++] = TSC2;
-    //list[k++] = Gamma;
-    //list[k++] = T0;
-    //list[k++] = ST;
-    list[k++] = T1;
-    list[k++] = T2;
-    list[k++] = CTmin;
-    list[k++] = CTmax;
-
-    for (int i=0; i<N; i++) 
-      list[k++] = Y2[i];
-    for (int i=0; i<N; i++) 
-      list[k++] = Htot[i];
-    for (int i=0; i<N; i++) 
-      list[k++] = PROH[i];
-
-    // wipe file contents...
-    char filename[256];
-    char walker[256];
-    sprintf(walker,"%i",iworld);
-    strcpy(filename,dir_output);
-    strcat(filename,"/oREST.");
-    strcat(filename,walker);
-    strcat(filename,".d");
-    freopen(filename,"w",fp_orest);
-
-    for (int i=0; i<numb; i++) 
-      fprintf(fp_orest,"%f\n",list[i]);
-    for (int i=numb; i<N+numb; i++) 
-      fprintf(fp_orest,"%f ",list[i]);
-    fprintf(fp_orest,"\n");
-    for (int i=N+numb; i<2*N+numb; i++) 
-      fprintf(fp_orest,"%f ",list[i]);
-    fprintf(fp_orest,"\n");
-    for (int i=2*N+numb; i<nsize; i++) 
-      fprintf(fp_orest,"%f ",list[i]);
-    fprintf(fp_orest,"\n");
-
-    memory->destroy(list);
-  }
 }
 
 /* ---------------------------------------------------------------------- */
