@@ -52,11 +52,11 @@ class FixStmd : public Fix {
 
  private:
   int bin;                  // binsize
-  int RSTFRQ,PRNFRQ;        // restart and print frequency
-  int TSC1;                 // dig reduction frequency
-  int TSC2;                 // f-reduction frequency
-  int OREST;                // restart flag, 1 to read restart
+  int RSTFRQ;               // restart and print frequency
   int f_flag;               // determines type of f-reduction
+  int TSC1;                 // dig reduction frequency
+  int TSC2;                 // hckh() or f-reduction frequency
+  int OREST;                // restart flag, 1 to read restart
   int iworld,nworlds;       // world info
   int BinMin,BinMax;        // bin info
   int Count,CountH,CountPH; // histogram counts   
@@ -78,8 +78,10 @@ class FixStmd : public Fix {
   double Gamma;             // force scaling factor
 
   char dir_output[256];     // output directory
+  char filename_wtnm[256],filename_whnm[256];
+  char filename_whpnm[256],filename_orest[256];
+
   char * id_pe;
-  char filename_wtnm[256],filename_whnm[256],filename_whpnm[256],filename_orest[256];
   FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
   double * Y1, * Prob;
