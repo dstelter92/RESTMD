@@ -192,7 +192,7 @@ void TemperStmd::command(int narg, char **arg )
 
   // setup tempering runs
   int which,partner,swap,partner_set_temp,partner_world;
-  double pe,pe_partner,boltz_factor,f_me,f_partner;
+  double pe,pe_partner,boltz_factor;
 
   int stg_flag = 0;
   int stg_flag_me = 0;
@@ -241,7 +241,6 @@ void TemperStmd::command(int narg, char **arg )
     // Get fix stmd information
     current_STG = fix_stmd->STG;
     T_me = (fix_stmd->T)*(fix_stmd->ST);
-    f_me = fix_stmd->f;
 
     // which = which of 2 kinds of swaps to do (0,1)
     if (!ranswap) which = iswap % 2;
@@ -272,18 +271,10 @@ void TemperStmd::command(int narg, char **arg )
       if (me_universe > partner) {
         MPI_Send(&pe,1,MPI_DOUBLE,partner,0,universe->uworld);
         MPI_Send(&T_me,1,MPI_DOUBLE,partner,0,universe->uworld);
-        MPI_Send(&f_me,1,MPI_DOUBLE,partner,0,universe->uworld);
       }
       else {
         MPI_Recv(&pe_partner,1,MPI_DOUBLE,partner,0,universe->uworld,MPI_STATUS_IGNORE);
         MPI_Recv(&T_partner,1,MPI_DOUBLE,partner,0,universe->uworld,MPI_STATUS_IGNORE);
-        MPI_Recv(&f_partner,1,MPI_DOUBLE,partner,0,universe->uworld,MPI_STATUS_IGNORE);
-      }
-
-      if (f_me != f_partner) {
-        if ((me_universe < partner) && (universe->uscreen)) 
-          fprintf(universe->uscreen,"f-value not equal between %d & %d\n",me_universe,partner);
-        error->universe_all(FLERR,"f-value between partitions must be equal when tempering");
       }
 
       if (me_universe < partner) {

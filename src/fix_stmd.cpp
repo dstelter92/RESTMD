@@ -424,7 +424,6 @@ void FixStmd::end_of_step()
   modify->compute[pe_compute_id]->invoked_flag |= INVOKED_SCALAR;
   modify->addstep_compute(update->ntimestep + 1);
   
-  //iworld = universe->iworld;
   // Write restart info to external file
   int m = (update->ntimestep) % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
