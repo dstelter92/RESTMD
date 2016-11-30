@@ -88,15 +88,18 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     f_flag = 2;
   else
     error->all(FLERR,"STMD: invalid f-reduction scheme");
+  if (f_flag == -1)
+    error->all(FLERR,"STMD: invalid f-reduction scheme");
 
   // Only used initially, controlled by restart
   initf  = atof(arg[5]);
-
   TL     = atof(arg[6]);
   TH     = atof(arg[7]);
   Emin   = atof(arg[8]);
   Emax   = atof(arg[9]);
   bin    = atoi(arg[10]);
+
+  // Controlled by input file
   TSC1   = atof(arg[11]);
   TSC2   = atof(arg[12]);
 
