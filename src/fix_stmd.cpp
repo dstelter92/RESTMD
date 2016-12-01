@@ -462,14 +462,14 @@ void FixStmd::end_of_step()
     // wipe file contents...
     char filename[256];
     char walker[256];
-    sprintf(walker,"%i",iworld);
+    sprintf(walker,"%i",universe->iworld);
     strcpy(filename,dir_output);
     strcat(filename,"/oREST.");
     strcat(filename,walker);
     strcat(filename,".d");
     freopen(filename,"w",fp_orest);
 
-    for (int i=0; i<numb; i++) 
+    for (int i=0; i<numb; i++)
       fprintf(fp_orest,"%f\n",list[i]);
     for (int i=numb; i<N+numb; i++) 
       fprintf(fp_orest,"%f ",list[i]);
