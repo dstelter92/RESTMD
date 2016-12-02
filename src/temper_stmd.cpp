@@ -342,6 +342,9 @@ void TemperStmd::command(int narg, char **arg )
       for (int i=0; i<nworlds; i++) temp2world[world2temp[i]] = i;
     }
     MPI_Bcast(temp2world,nworlds,MPI_INT,0,world);
+    
+    // write stmd restart files after swap
+    fix_stmd->write_orest();
 
     // print out current swap status
     if (me_universe == 0) print_status();

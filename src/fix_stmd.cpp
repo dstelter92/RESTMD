@@ -426,7 +426,36 @@ void FixStmd::end_of_step()
   // Force computation of energies on next step
   modify->compute[pe_compute_id]->invoked_flag |= INVOKED_SCALAR;
   modify->addstep_compute(update->ntimestep + 1);
-  
+
+  // If stmd, write output, otherwise let temper/stmd handle it
+  if (universe->nworlds == 1)
+    write_orest();
+}
+
+/* ---------------------------------------------------------------------- */
+
+void FixStmd::min_post_force(int vflag)
+{
+  post_force(vflag);
+}
+
+/* ----------------------------------------------------------------------
+   memory usage of local atom-based array
+------------------------------------------------------------------------- */
+
+double FixStmd::memory_usage()
+{
+  double bytes = 0.0;
+  bytes+= 7 * N * sizeof(double);
+  return bytes;
+}
+
+/* ----------------------------------------------------------------------
+   write external restart file
+------------------------------------------------------------------------- */
+
+void FixStmd::write_orest()
+{
   // Write restart info to external file
   int m = (update->ntimestep) % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
@@ -483,24 +512,6 @@ void FixStmd::end_of_step()
 
     memory->destroy(list);
   }
-}
-
-/* ---------------------------------------------------------------------- */
-
-void FixStmd::min_post_force(int vflag)
-{
-  post_force(vflag);
-}
-
-/* ----------------------------------------------------------------------
-   memory usage of local atom-based array
-------------------------------------------------------------------------- */
-
-double FixStmd::memory_usage()
-{
-  double bytes = 0.0;
-  bytes+= 7 * N * sizeof(double);
-  return bytes;
 }
 
 /* ----------------------------------------------------------------------

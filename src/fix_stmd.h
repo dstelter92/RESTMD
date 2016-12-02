@@ -40,6 +40,7 @@ class FixStmd : public Fix {
   double compute_scalar();
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
+  void write_orest();
 
   // Public for access by temper_grem
   double * Y2;              // statistical temperature array
