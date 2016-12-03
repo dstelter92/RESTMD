@@ -1,0 +1,22 @@
+# LJ particles
+variable        T0 equal 300.0
+variable        TL equal 250.0
+variable        TH equal 350.0
+
+units           real
+atom_style      full
+pair_style      lj/cut 5.0
+
+read_data       "lj-stg3.data"
+
+thermo          10
+thermo_style    custom step temp pe etotal press
+
+timestep        1.0
+
+fix             fxnvt all nvt temp ${T0} ${T0} 1000.0
+fix             fxSTMD all stmd 100000 sqrt 1.01 ${TL} ${TH} -3500 -2250 2 10000 100000 ${T0} 1
+
+run             100000
+
+#write_data      lj-out.data
