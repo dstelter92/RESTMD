@@ -596,7 +596,7 @@ void FixStmd::EPROB(int icycle)
   const int indx = icycle;
   m = indx % TSC1;
   if ((m == 0) && (indx != 0)) sw = 1;
-  
+
   m = indx % TSC2;
   if ((m == 0) && (indx != 0)) sw = 2;
 
@@ -649,7 +649,7 @@ void FixStmd::HCHK()
   if (icnt==0) return;
 
   aveH = aveH / double(icnt);
-  
+
   double eval;
   for (int i=0; i<N; i++) {
     if ((Y2[i] > CTmin) && (Y2[i] < CTmax) ) {
@@ -678,7 +678,7 @@ void FixStmd::MAIN(int istep, double potE)
 
   // Statistical Temperature Update
   int stmdi = Yval(potE);
-  
+
   // Gamma Update
   GammaE(potE,stmdi);
 
@@ -736,7 +736,7 @@ void FixStmd::MAIN(int istep, double potE)
         if ((stmd_logfile) && (stmd_debug))
           fprintf(logfile,"STMD STG3 f= %f  Swchk= %i T= %f\n",f,SWchk,T);
       }
-      
+
       // Check stage 3
       if (f <= finFval) STG = 4;
 
@@ -784,7 +784,7 @@ void FixStmd::MAIN(int istep, double potE)
   // until <= 1.000001, else if RESTMD, reduce every TSC2 steps
   if (STG == 2) {
     m = istep % TSC2;
-    
+
     // If STMD...
     if ((m == 0) && (f_flag == 0)) { 
       if ((stmd_logfile) && (stmd_debug))
@@ -804,12 +804,12 @@ void FixStmd::MAIN(int istep, double potE)
           fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
           fprintf(logfile,"STMD STG2: STG= %i\n",STG);
         }
-        
+
         SWchk = 1;
         ResetPH();
         CountH = 0;
       } else SWchk++;
-      
+
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"STMD SG2 RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
             "STG= %i\n",totCi,f,SWf,SWchk,STG);
@@ -841,11 +841,11 @@ void FixStmd::MAIN(int istep, double potE)
 	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
 	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
       }
-      
+
       ResetPH();
       CountH = 0;
 	  } // if ((m == 0) && (f_flag == 1)) 
-    
+
     // RESTMD, alternative f-reduction scheme
     if ((m == 0) && (f_flag == 2)) { 
         if ((stmd_logfile) && (stmd_debug))
@@ -870,7 +870,7 @@ void FixStmd::MAIN(int istep, double potE)
 	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
 	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
       }
-      
+
       ResetPH();
       CountH = 0;
 	  } // if ((m == 0) && (f_flag == 2)) 
