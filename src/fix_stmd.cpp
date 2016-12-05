@@ -320,7 +320,7 @@ void FixStmd::init()
       strcat(filename,walker);
       strcat(filename,".d");
       std::ifstream file(filename);
-          
+
       for (int i=0; i<nsize; i++) 
         file >> list[i];
 
@@ -339,14 +339,14 @@ void FixStmd::init()
       T2 = list[k++];
       CTmin = list[k++];
       CTmax = list[k++];
-      
+
       for (int i=0; i<N; i++)
         Y2[i] = list[k++];
       for (int i=0; i<N; i++)
         Htot[i] = list[k++];
       for (int i=0; i<N; i++)
         PROH[i] = list[k++];
-      
+
       memory->destroy(list);
     }
   }
