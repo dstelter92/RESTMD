@@ -428,8 +428,10 @@ void FixStmd::end_of_step()
   modify->addstep_compute(update->ntimestep + 1);
 
   // If stmd, write output, otherwise let temper/stmd handle it
-  if (universe->nworlds == 1)
+  if (universe->nworlds == 1) {
+    write_temperature();
     write_orest();
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -448,6 +450,20 @@ double FixStmd::memory_usage()
   double bytes = 0.0;
   bytes+= 7 * N * sizeof(double);
   return bytes;
+}
+
+/* ----------------------------------------------------------------------
+   write temperature to external file
+------------------------------------------------------------------------- */
+
+void FixStmd::write_temperature()
+{
+  int m = (update->ntimestep) % RSTFRQ;
+  if ((m == 0) && (comm->me == 0)) {
+    for (int i=0; i<N; i++) 
+      fprintf(fp_wtnm,"%i %f %f %f %i\n", i,(i*bin)+Emin,Y2[i]*ST,Y2[i],totCi);
+    fprintf(fp_wtnm,"\n\n");
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -902,15 +918,6 @@ void FixStmd::MAIN(int istep, double potE)
       }
     } // if (m == 0) 
   } // if (STG == 1) 
-
-  // Yval output
-  m = istep % RSTFRQ;
-  if ((m == 0) && (comm->me == 0)) {
-    for (int i=0; i<N; i++) 
-      fprintf(fp_wtnm,"%i %f %f %f %i\n", i,(i*bin)+Emin,Y2[i]*ST,Y2[i],totCi);
-    fprintf(fp_wtnm,"\n\n");
-  }
-
 }
 
 /* ---------------------------------------------------------------------- */
