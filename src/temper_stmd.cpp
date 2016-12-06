@@ -332,6 +332,14 @@ void TemperStmd::command(int narg, char **arg )
       fix_stmd->T2 = local_values[fix_stmd->N+1];
     } // if swap
 
+#ifdef TEMPER_DEBUG
+    if (me_universe == 0) {
+      printf("before: ");
+      printf("%d %d %d %d\n",temp2world[0],temp2world[1],temp2world[2],temp2world[3]);
+      printf("%d %d %d %d\n",world2temp[0],world2temp[1],world2temp[2],world2temp[3]);
+    }
+#endif
+
     // update my_set_temp and temp2world on every proc
     // root procs update their value if swap took place
     // allgather across root procs
@@ -342,6 +350,14 @@ void TemperStmd::command(int narg, char **arg )
       for (int i=0; i<nworlds; i++) temp2world[world2temp[i]] = i;
     }
     MPI_Bcast(temp2world,nworlds,MPI_INT,0,world);
+
+#ifdef TEMPER_DEBUG
+    if (me_universe == 0) {
+      printf("after: ");
+      printf("%d %d %d %d\n",temp2world[0],temp2world[1],temp2world[2],temp2world[3]);
+      printf("%d %d %d %d\n",world2temp[0],world2temp[1],world2temp[2],world2temp[3]);
+    }
+#endif
 
     // write stmd temperature files after swap
     fix_stmd->write_temperature();
@@ -374,13 +390,13 @@ void TemperStmd::print_status()
   if (universe->uscreen) {
     fprintf(universe->uscreen,BIGINT_FORMAT,update->ntimestep);
     for (int i = 0; i < nworlds; i++)
-      fprintf(universe->uscreen," %d",world2temp[i]);
+      fprintf(universe->uscreen," %d",temp2world[i]);
     fprintf(universe->uscreen,"\n");
   }
   if (universe->ulogfile) {
     fprintf(universe->ulogfile,BIGINT_FORMAT,update->ntimestep);
     for (int i = 0; i < nworlds; i++)
-      fprintf(universe->ulogfile," %d",world2temp[i]);
+      fprintf(universe->ulogfile," %d",temp2world[i]);
     fprintf(universe->ulogfile,"\n");
     fflush(universe->ulogfile);
   }
