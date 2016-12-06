@@ -107,7 +107,15 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   ST     = atof(arg[13]);
 
   // 0 for new run, 1 for restart
-  OREST  = atoi(arg[14]);
+  OREST = -1;
+  if (strcmp(arg[14],"yes") == 0)
+    OREST = 1;
+  else if (strcmp(arg[14],"no") == 0)
+    OREST = 0;
+  else 
+    error->all(FLERR,"STMD: invalid restart option");
+  if (OREST == -1)
+    error->all(FLERR,"STMD: invalid restart option");
 
   // Make dir_output hard coded to local dir
   strcpy(dir_output,"./");
