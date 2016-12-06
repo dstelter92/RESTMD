@@ -490,10 +490,15 @@ void FixStmd::write_orest()
     list[k++] = Count;
     list[k++] = totCi;
     list[k++] = CountPH;
-    //list[k++] = TSC1; // Control these by LAMMPS input file
+
+    // Control these by LAMMPS input file
+    //list[k++] = TSC1; 
     //list[k++] = TSC2;
+
     list[k++] = T1;
     list[k++] = T2;
+
+    // only used for chk_hist
     list[k++] = CTmin;
     list[k++] = CTmax;
 
