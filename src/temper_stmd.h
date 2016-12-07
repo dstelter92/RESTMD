@@ -45,7 +45,7 @@ class TemperStmd : protected Pointers {
   int bin, Emin, Emax, BinMin, BinMax;
   double T_me,T_partner;       // latest sampled temperture
   int current_STG;             // current STMD stage
-  int EX_flag;                 // controlls if swap is turned OFF/ON (0/1)
+  int EX_flag;                 // controls if swap is turned OFF/ON (0/1)
 
   int my_set_temp;             // which set temp I am simulating
   double *set_temp;            // static list of replica set kinetic temperatures
