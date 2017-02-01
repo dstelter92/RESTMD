@@ -750,7 +750,8 @@ void FixStmd::MAIN(int istep, double potE)
       if (SWfold != SWf) {
         if ((stmd_logfile) && (stmd_debug))
           fprintf(logfile,"STMD STG f= %f  df= %f\n",f,df);
-        f = sqrt(f);
+        if (STG == 3) // dont reduce if STG4
+          f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
         if ((stmd_logfile) && (stmd_debug)) {
           fprintf(logfile,"STMD STG3 f= %f  SWf= %i  df= %f\n",f,SWf,df);
@@ -783,7 +784,8 @@ void FixStmd::MAIN(int istep, double potE)
     if ((m == 0) && (f_flag > 0)) { 
       if ((stmd_logfile) && (stmd_debug))
         fprintf(logfile,"RESTMD STAGE 3\nRESTMD STG3 istep= %i  TSC2= %i\n",istep,TSC2);
-      f = sqrt(f);
+      if (STG == 3) // dont reduce if STG4
+        f = sqrt(f);
       df = log(f) * 0.5 / double(bin);
       if ((stmd_logfile) && (stmd_debug)) {
         fprintf(logfile,"RESTMD STG3 f= %f  df= %f\n",f,df);
@@ -805,7 +807,7 @@ void FixStmd::MAIN(int istep, double potE)
               PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if ((m == 0) && (f_flag == 1))
+    } // if ((m == 0) && (f_flag >= 1))
   } // if (STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
