@@ -91,7 +91,12 @@ void TemperStmd::command(int narg, char **arg )
 
   // Exchange flag, 0 if swap off (run many replicas without exchange)
   // 1 if swap on.
-  EX_flag = atoi(arg[6]); 
+  if (strcmp(arg[6],"off") == 0)
+    EX_flag = 0;
+  else if (strcmp(arg[6],"on") == 0)
+    EX_flag = 1;
+  else
+    error->all(FLERR,"RESTMD: invalid exchange keyword");
 
   if (fix_stmd->ST != temp)
     error->universe_all(FLERR,"Kinetic temperatures not "
