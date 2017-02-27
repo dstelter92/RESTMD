@@ -228,7 +228,7 @@ void FixStmd::init()
 
   CutTmin  = 50.0;
   CutTmax  = 50.0;
-  finFval  = 1.0000001;
+  finFval  = 1.0000001; // if same, skip to stg4
   pfinFval = 1.000001;
   HCKtol   = 0.2;
 
@@ -527,7 +527,9 @@ void FixStmd::write_orest()
     strcat(filename,".d");
     freopen(filename,"w",fp_orest);
 
-    for (int i=0; i<numb; i++)
+    fprintf(fp_orest,"%f\n",list[0]);
+    fprintf(fp_orest,"%.16f\n",list[1]); // extra precision for f
+    for (int i=2; i<numb; i++)
       fprintf(fp_orest,"%f\n",list[i]);
     for (int i=numb; i<N+numb; i++) 
       fprintf(fp_orest,"%f ",list[i]);

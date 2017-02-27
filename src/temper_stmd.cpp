@@ -96,7 +96,7 @@ void TemperStmd::command(int narg, char **arg )
   else if (strcmp(arg[6],"on") == 0)
     EX_flag = 1;
   else
-    error->all(FLERR,"RESTMD: invalid exchange keyword");
+    error->all(FLERR,"RESTMD: illegal exchange option");
 
   if (fix_stmd->ST != temp)
     error->universe_all(FLERR,"Kinetic temperatures not "

@@ -48,7 +48,7 @@ class FixStmd : public Fix {
   int STG;                  // stage flag
   int N;                    // number of bins
   double T;                 // latest sampled temperature
-  double f;                 // current f-value
+  long double f;            // current f-value
   double ST;                // kinetic temperature
   double T1, T2;            // scaled temperature cutoffs
 
