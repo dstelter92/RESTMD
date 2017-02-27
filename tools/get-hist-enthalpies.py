@@ -9,18 +9,21 @@ from numpy import *
 
 ### PARAMETERS ###
 NumReplica = 4
-start = 150
-stop = 200
-
 Elo = -300000
 Ehi = -100000
 binsize = 512
-steps = 500000
-exchange = 10000
-thermo = 100
-##################
+steps = 500000 # steps per run
+exchange = 10000 # exchange attempt every
+thermo = 100 # frequency of saved thermo data
+
+# Resetart File labels
+start = 150
+stop = 200
+
+# File read 1st data, skip last point
 header = 92
 footer = 26
+##################
 
 length = steps/thermo
 length_walk = steps/exchange
