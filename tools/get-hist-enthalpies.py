@@ -74,15 +74,15 @@ for i in range(NumReplica):
 
 print "\nSaving outputs..."
 #savetxt('full_replica_data.dat', full_data)
-walkers = empty(size_walk)
+walkers = empty(size_walk, dtype=int)
 for rep in range(NumReplica):
     Rname = 'replica-' + str(rep) + '.dat'
     Wname = 'walker-' + str(rep) + '.dat'
     savetxt(Rname, full_data[:, (rep+(2*NumReplica)+1)])
     savetxt(Wname, full_data[:, (rep+1)])
-    walkers[:,rep+1] = full_data[:,rep+NumReplica+1]
+    walkers[:,rep+1] = full_data[:,rep+NumReplica+1].astype(int)
 
-walkers[:,0] = full_data[:,0]
-savetxt('exchange_list.dat', walkers)
+walkers[:,0] = full_data[:,0].astype(int)
+savetxt('exchange_list.dat', walkers, fmt='%d')
 
 sys.exit()
