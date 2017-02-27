@@ -8,22 +8,19 @@ from numpy import *
 ##################
 
 ### PARAMETERS ###
-NumReplica = 4
-Elo = -300000
-Ehi = -100000
-binsize = 512
-steps = 500000 # steps per run
-exchange = 10000 # exchange attempt every
-thermo = 100 # frequency of saved thermo data
+NumReplica = 2
+start = 55
+stop = 101
 
-# Resetart File labels
-start = 150
-stop = 200
-
-# File read 1st data, skip last point
-header = 92
-footer = 26
+Elo = -7000
+Ehi = -5500
+binsize = 4
+steps = 1000
+exchange = 1000
+thermo = 50
 ##################
+header = 88
+footer = 53
 
 length = steps/thermo
 length_walk = steps/exchange
@@ -45,16 +42,15 @@ for i in range(NumReplica):
     print "\n===--- Walker", i, "---==="
     for j in range(stop-start):
         # sum over data
-        hname = 'log/log.lammps.' + str(i) + '-' + str(start+j)
-        wname = 'log/log.lammps-' + str(start+j)
+        hname = str(i) + '/log.lammps.' + str(i) + '-' + str(start+j)
+        wname = 'log.lammps' + '-' + str(start+j)
 
         Hist = genfromtxt(hname, skip_header=header, skip_footer=footer, usecols = (0,2))
-
-        print "Walker: ", i, "Data index: ", j
-        print "  Step start: ", Hist[0][0], "Step end: ", Hist[-1][0]
-        print "  Energy: min: ", amin(Hist[:,1]), "max: ", amax(Hist[:,1])
-
+        print "Walker: ", i, "Data index: ", j+start
+        print "Step start: ", Hist[0][0], "Step end: ", Hist[-1][0]
+        print "Energy: min: ", amin(Hist[:,1]), "max: ", amax(Hist[:,1])
         Walk = genfromtxt(wname, skip_header=3, skip_footer=1)
+
 
         for k in range(length):
         # Load enthalpy data in global array
@@ -62,7 +58,10 @@ for i in range(NumReplica):
             if (first_flag == 0):
                 full_data[:,0][indx] = Hist[:,0][k]
             full_data[:,i+1][indx] = Hist[:,1][k]
-            full_data[:,i+NumReplica+1][indx] = int(Walk[:,i+1][k/ratio])
+            if (exchange == steps):
+                full_data[:,i+NumReplica+1][indx] = int(Walk[i+1])
+            else:
+                full_data[:,i+NumReplica+1][indx] = int(Walk[:,i+1][k/ratio])
             #print k, k+(j*length), k/ratio
 
             for rep in range(NumReplica):
@@ -73,7 +72,7 @@ for i in range(NumReplica):
     first_flag = 1
 
 
-print "Saving outputs..."
+print "\nSaving outputs..."
 #savetxt('full_replica_data.dat', full_data)
 walkers = empty(size_walk)
 for rep in range(NumReplica):
