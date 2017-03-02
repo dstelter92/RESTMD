@@ -176,7 +176,7 @@ void FixStmd::init()
     strcat(filename,walker);
     strcat(filename,".d");
     strcpy(filename_orest,filename);
-    if (fp_orest == fopen(filename, "r")) {
+    if (fp_orest = fopen(filename, "r")) {
       fclose(fp_orest);
     } else {
       if (nworlds > 1) 
