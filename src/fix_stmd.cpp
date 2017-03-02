@@ -91,6 +91,9 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   if (f_flag == -1)
     error->all(FLERR,"STMD: invalid f-reduction scheme");
 
+  finFval  = 1.000000001; // if same, skip to stg4
+  pfinFval = 1.000001;
+
   // Only used initially, controlled by restart
   initf  = atof(arg[5]);
   TL     = atof(arg[6]);
@@ -173,7 +176,7 @@ void FixStmd::init()
     strcat(filename,walker);
     strcat(filename,".d");
     strcpy(filename_orest,filename);
-    if (fp_orest = fopen(filename, "r")) {
+    if (fp_orest == fopen(filename, "r")) {
       fclose(fp_orest);
     } else {
       if (nworlds > 1) 
@@ -228,8 +231,6 @@ void FixStmd::init()
 
   CutTmin  = 50.0;
   CutTmax  = 50.0;
-  finFval  = 1.0000001; // if same, skip to stg4
-  pfinFval = 1.000001;
   HCKtol   = 0.2;
 
   QEXPO = 0;
@@ -528,7 +529,7 @@ void FixStmd::write_orest()
     freopen(filename,"w",fp_orest);
 
     fprintf(fp_orest,"%f\n",list[0]);
-    fprintf(fp_orest,"%.16f\n",list[1]); // extra precision for f
+    fprintf(fp_orest,"%.15Lf\n",f); // extra precision for f
     for (int i=2; i<numb; i++)
       fprintf(fp_orest,"%f\n",list[i]);
     for (int i=numb; i<N+numb; i++) 
@@ -730,7 +731,7 @@ void FixStmd::MAIN(int istep, double potE)
   // Hist Output
   int m = istep % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
-    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
+    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %Lf"
         "\n", i, (i*bin)+Emin, Hist[i], Htot[i], Y2[i], CountH, totCi, f);
     fprintf(fp_whnm,"\n\n");
   }
@@ -747,16 +748,16 @@ void FixStmd::MAIN(int istep, double potE)
       HCHK();
       if ((stmd_logfile) && (stmd_debug)) {
         fprintf(logfile,"STMD STG3 SWfold= %i  SWf= %i\n",SWfold,SWf);
-        fprintf(logfile,"STMD STG3 f= %f  SWchk= %i\n",f,SWchk);
+        fprintf(logfile,"STMD STG3 f= %Lf  SWchk= %i\n",f,SWchk);
       }
       if (SWfold != SWf) {
         if ((stmd_logfile) && (stmd_debug))
-          fprintf(logfile,"STMD STG f= %f  df= %f\n",f,df);
+          fprintf(logfile,"STMD STG f= %Lf  df= %f\n",f,df);
         if (STG == 3) // dont reduce if STG4
           f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"STMD STG3 f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG3 f= %Lf  SWf= %i  df= %f\n",f,SWf,df);
           fprintf(logfile,"STMD STG3 NEXT STG= %i\n",STG);
         }
         SWchk = 1;
@@ -766,7 +767,7 @@ void FixStmd::MAIN(int istep, double potE)
       } else {
         SWchk++;
         if ((stmd_logfile) && (stmd_debug))
-          fprintf(logfile,"STMD STG3 f= %f  Swchk= %i T= %f\n",f,SWchk,T);
+          fprintf(logfile,"STMD STG3 f= %Lf  Swchk= %i T= %f\n",f,SWchk,T);
       }
 
       // Check stage 3
@@ -776,7 +777,7 @@ void FixStmd::MAIN(int istep, double potE)
       m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++)
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %Lf\n", i, (i*bin)+Emin,\
               Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
@@ -790,7 +791,7 @@ void FixStmd::MAIN(int istep, double potE)
         f = sqrt(f);
       df = log(f) * 0.5 / double(bin);
       if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"RESTMD STG3 f= %f  df= %f\n",f,df);
+        fprintf(logfile,"RESTMD STG3 f= %Lf  df= %f\n",f,df);
         fprintf(logfile,"RESTMD STG3 NEXT STG= %i\n",STG);
       }
 
@@ -805,7 +806,7 @@ void FixStmd::MAIN(int istep, double potE)
       m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++) 
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin+Emin), Hist[i],\
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %Lf\n", i, (i*bin+Emin), Hist[i],\
               PROH[i], Htot[i], Y2[i], CountH, CountPH, f);
         fprintf(fp_whpnm,"\n\n");
       }
@@ -830,11 +831,11 @@ void FixStmd::MAIN(int istep, double potE)
       // F value update
       if (SWfold != SWf) {
         if ((stmd_logfile) && (stmd_debug))
-          fprintf(logfile,"STMD STG2: f= %f  df= %f\n",f,df);
+          fprintf(logfile,"STMD STG2: f= %Lf  df= %f\n",f,df);
         f = sqrt(f);
         df = log(f) * 0.5 / double(bin);
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG2: f= %Lf  SWf= %i  df= %f\n",f,SWf,df);
           fprintf(logfile,"STMD STG2: STG= %i\n",STG);
         }
 
@@ -844,14 +845,14 @@ void FixStmd::MAIN(int istep, double potE)
       } else SWchk++;
 
       if ((stmd_logfile) && (stmd_debug))
-        fprintf(logfile,"STMD SG2 RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+        fprintf(logfile,"STMD SG2 RESULTS: totCi= %i  f= %Lf  SWf= %i  SWchk= %i  "
             "STG= %i\n",totCi,f,SWf,SWchk,STG);
 
       if (f <= pfinFval) {
         STG = 3;
         CountPH = 0;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"STMD STG2: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"STMD STG2: f= %Lf  SWf= %i  df= %f\n",f,SWf,df);
           fprintf(logfile,"STMD STG2: STG= %i T= %f\n",STG,T);
         }
         SWchk = 1;
@@ -871,7 +872,7 @@ void FixStmd::MAIN(int istep, double potE)
           CountPH = 0;
         }
 	    if ((stmd_logfile) && (stmd_debug)) {
-	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
+	      fprintf(logfile,"RESTMD STG2: f= %Lf  df= %f\n",f,df);
 	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
       }
 
@@ -900,7 +901,7 @@ void FixStmd::MAIN(int istep, double potE)
           CountPH = 0;
         }
 	    if ((stmd_logfile) && (stmd_debug)) {
-	      fprintf(logfile,"RESTMD STG2: f= %f  df= %f\n",f,df);
+	      fprintf(logfile,"RESTMD STG2: f= %Lf  df= %f\n",f,df);
 	      fprintf(logfile,"RESTMD STG2: STG= %i\n",STG);
       }
 
