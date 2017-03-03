@@ -65,6 +65,7 @@ class FixStmd : public Fix {
   int totC,totCi;           // total counts
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int QEXPO;                // exponetial energy bins
+  int f_prec;               // f-value precision
 
   int stmd_logfile,stmd_debug;
   int pe_compute_id;

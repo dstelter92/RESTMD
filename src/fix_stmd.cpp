@@ -64,7 +64,7 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
 
   global_freq = 1;
   scalar_flag = 1;
@@ -90,30 +90,41 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,"STMD: invalid f-reduction scheme");
   if (f_flag == -1)
     error->all(FLERR,"STMD: invalid f-reduction scheme");
-
-  finFval  = 1.000000001; // if same, skip to stg4
-  pfinFval = 1.000001;
+  
+  // Tolerances for STG3 & STG4
+  //finFval  = 1.000000001; // if same, skip to stg4
+  //pfinFval = 1.000001; // determines start of stg3
+  // Hard code STG4 (no more f-reduction) to be 10 times less than STG3
+  pfinFval = strtold(arg[5], NULL);
+  if (pfinFval > 1.1)
+    error->all(FLERR,"STMD: f-value precision too large\n");
+  else if (pfinFval < 1.0)
+    error->all(FLERR,"STMD: f-value precision must be larger than unity\n");
+  f_prec = strlen(arg[5]);
+  if (f_prec >= 18)
+    error->all(FLERR,"STMD: f-value precision too small\n");
+  finFval = ((pfinFval - 1.0) / 10 ) + 1.0;
 
   // Only used initially, controlled by restart
-  initf  = atof(arg[5]);
-  TL     = atof(arg[6]);
-  TH     = atof(arg[7]);
-  Emin   = atof(arg[8]);
-  Emax   = atof(arg[9]);
-  bin    = atoi(arg[10]);
+  initf  = atof(arg[6]);
+  TL     = atof(arg[7]);
+  TH     = atof(arg[8]);
+  Emin   = atof(arg[9]);
+  Emax   = atof(arg[10]);
+  bin    = atoi(arg[11]);
 
   // Controlled by input file
-  TSC1   = atof(arg[11]);
-  TSC2   = atof(arg[12]);
+  TSC1   = atof(arg[12]);
+  TSC2   = atof(arg[13]);
 
   // This value should be consistent with target temperature of thermostat fix
-  ST     = atof(arg[13]);
+  ST     = atof(arg[14]);
 
   // 0 for new run, 1 for restart
   OREST = -1;
-  if (strcmp(arg[14],"yes") == 0)
+  if (strcmp(arg[15],"yes") == 0)
     OREST = 1;
-  else if (strcmp(arg[14],"no") == 0)
+  else if (strcmp(arg[15],"no") == 0)
     OREST = 0;
   else 
     error->all(FLERR,"STMD: invalid restart option");
@@ -365,8 +376,9 @@ void FixStmd::init()
     fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
   if (stmd_logfile) {
-    fprintf(logfile,"STMD: STAGE= %i #bins= %i  binsize %i\n",STG, N, bin); 
+    fprintf(logfile,"STMD: STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin); 
     fprintf(screen,"STMD: STAGE= %i #bins= %i  binsize= %i\n",STG, N, bin);
+    fprintf(logfile,"  tolerances: STG3= %.*Lf, STG4= %.*Lf\n", f_prec, pfinFval, f_prec, finFval);
   }
 
   // Write values of all paramters to logfile
