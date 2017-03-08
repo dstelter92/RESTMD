@@ -141,7 +141,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   if ((comm->me == 0) && (logfile)) stmd_logfile = 1;
 
   // DEBUG FLAG
-  stmd_debug = 1;
+  //stmd_debug = 1;
 
   fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
 }
@@ -369,6 +369,7 @@ void FixStmd::init()
 
       memory->destroy(list);
     }
+    df = log(f) * 0.5 / (long double)bin;
   }
 
   if ((stmd_logfile) && (nworlds > 1)) {
@@ -597,7 +598,7 @@ int FixStmd::Yval(double potE)
   double Yhi = Y2[i+1];
   double Ylo = Y2[i-1];
 
-  df = log(f) * 0.5 / (long double)bin;
+  //df = log(f) * 0.5 / (long double)bin;
 
   Y2[i+1] = Y2[i+1] / (1.0 - df * Y2[i+1]);
   Y2[i-1] = Y2[i-1] / (1.0 + df * Y2[i-1]);
