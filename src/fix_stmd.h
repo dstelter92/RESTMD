@@ -76,7 +76,7 @@ class FixStmd : public Fix {
   double CTmin,CTmax;       // temperature cutoffs
   double CutTmin,CutTmax;
   long double finFval,pfinFval;  // f-tolerance for stg 3 and stg 4
-  double initf,df;          // initial-f and delta-f
+  long double initf,df;          // initial-f and delta-f
   double HCKtol;            // histogram tolerance when chk flatness
   double Gamma;             // force scaling factor
 
