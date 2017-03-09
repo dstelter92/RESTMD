@@ -377,12 +377,12 @@ void FixStmd::init()
     fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
   if (stmd_logfile) {
-    fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG, N, bin); 
-    fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG, N, bin);
-    fprintf(logfile,"  Emin= %f Emax= %f f-value= %.*Lf\n", Emin, Emax, f_prec, f); 
-    fprintf(screen,"  Emin= %f Emax= %f f-value= %.*Lf\n", Emin, Emax, f_prec, f); 
-    fprintf(logfile,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec, pfinFval, f_prec, finFval);
-    fprintf(screen,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec, pfinFval, f_prec, finFval);
+    fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin); 
+    fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin);
+    fprintf(logfile,"  Emin= %f Emax= %f f-value= %.*Lf df= %.*LF\n",Emin,Emax,f_prec,f,f_prec,df); 
+    fprintf(screen,"  Emin= %f Emax= %f f-value= %.*Lf df= %.*LF\n", Emin,Emax,f_prec,f,f_prec,df); 
+    fprintf(logfile,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec,pfinFval,f_prec,finFval);
+    fprintf(screen,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec,pfinFval,f_prec,finFval);
   }
 
   // Write values of all paramters to logfile
