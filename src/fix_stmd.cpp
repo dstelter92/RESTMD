@@ -92,17 +92,21 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,"STMD: invalid f-reduction scheme");
   
   // Tolerances for STG3 & STG4
-  //finFval  = 1.000000001; // if same, skip to stg4
+  //finFval  = 1.00000001; // if same, skip to stg4
   //pfinFval = 1.000001; // determines start of stg3
-  // Hard code STG4 (no more f-reduction) to be 10 times less than STG3
   pfinFval = strtold(arg[5], NULL);
   if (pfinFval > 1.1)
     error->all(FLERR,"STMD: f-value precision too large\n");
-  else if (pfinFval < 1.0)
+  else if (pfinFval == 0.) {
+    // Set default
+    pfinFval = 1.000001;
+  }
+  else if ((pfinFval < 1.0) && (pfinFval != 0.))
     error->all(FLERR,"STMD: f-value precision must be larger than unity\n");
   f_prec = strlen(arg[5]);
   if (f_prec >= 18)
     error->all(FLERR,"STMD: f-value precision too small\n");
+  // Hard code STG4 (no more f-reduction) to be 10 times less than STG3
   finFval = ((pfinFval - 1.0) / 10 ) + 1.0;
 
   // Only used initially, controlled by restart
