@@ -62,7 +62,7 @@ Emax = double(idata[2])
 T0 = double(idata[3])
 T1s = array(map(double, idata[4].split())) # List of Tlo
 T2s = array(map(double, idata[5].split())) # List of Thi
-rest_num = int(idata[6])
+workdir = idata[6].strip()
 checklimit = double(idata[7]) # Cutoff for contribution from neighbor replicas
 
 
@@ -102,7 +102,7 @@ print "Replica: "
 for l in range(nReplica):
     sys.stdout.write("%d<->%d " % (T1s[l], T2s[l]))
     sys.stdout.flush()
-    data = loadtxt("../replica-%d.dat" % l)
+    data = loadtxt("%sreplica-%d.dat" % (workdir, l))
     # Calculate histogram
     hist[:,l], edges = histogramdd(ravel(data), bins=nbin, range=[(Emin, Emax)])
 
@@ -126,7 +126,7 @@ hfrac = zeros(shape) # Histogram fraction, useful for debugging
 
 ## Collect data, and normalize...
 for l in range(nReplica):
-    Y2[:,l] = genfromtxt("../oREST.%d.d" % (l), skip_footer=2, skip_header=13, delimiter=" ")
+    Y2[:,l] = genfromtxt("%soREST.%d.d" % (workdir, l), skip_footer=2, skip_header=13, delimiter=" ")
 
 for l in range(1,nReplica+1):
     count = 0
