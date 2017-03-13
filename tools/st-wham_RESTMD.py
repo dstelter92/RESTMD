@@ -73,7 +73,9 @@ fracout = open('fract_stwham.dat', 'w')
 
 
 ## Calculate some constants...
-nbin = int((Emax-Emin)/binsize) + 2
+bmin = round(Emin/binsize)
+bmax = round(Emax/binsize)
+nbin = int(bmax - bmin + 1)
 nReplica = len(T1s)
 shape = (nbin, nReplica)
 fullshape = (nbin, nReplica+1)
@@ -124,7 +126,7 @@ hfrac = zeros(shape) # Histogram fraction, useful for debugging
 
 ## Collect data, and normalize...
 for l in range(nReplica):
-    Y2[:,l] = genfromtxt("../restart/oREST.%d.d-%d" % (l, rest_num), skip_footer=2, skip_header=13, delimiter=" ")
+    Y2[:,l] = genfromtxt("../oREST.%d.d" % (l), skip_footer=2, skip_header=13, delimiter=" ")
 
 for l in range(1,nReplica+1):
     count = 0
