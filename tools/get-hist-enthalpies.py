@@ -80,7 +80,7 @@ for rep in range(NumReplica):
                 full_data[:,rep+(2*NumReplica)+1][indx] = full_data[:,j+NumReplica+1][indx]
 
 print "\nSaving outputs..."
-savetxt('full_replica_data.dat', full_data)
+#savetxt('full_replica_data.dat', full_data)
 walkers = empty(size_walk, dtype=int)
 for rep in range(NumReplica):
     Rname = 'replica-' + str(rep) + '.dat'
