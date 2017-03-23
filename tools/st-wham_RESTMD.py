@@ -51,8 +51,16 @@ idata = ifile.readlines()
 num_lines = len(idata)
 
 if (num_lines > 8 or num_lines < 8):
-    print "Err: Invalid input: Incorrect parameters, remove any extra newlines. Should be:\n"
-    print "..."
+    print "Err: Invalid input: Incorrect parameters, Should be:\n"
+    print "  binsize"
+    print "  Elow"
+    print "  Ehigh"
+    print "  T0"
+    print "  List_of_Tlow"
+    print "  List_of_Thigh"
+    print "  Path_to_data"
+    print "  checkLIMIT\n"
+    print "Exiting..."
     sys.exit()
 
 ## Cast inputs...
@@ -64,7 +72,7 @@ T1s = array(map(double, idata[4].split())) # List of Tlo
 T2s = array(map(double, idata[5].split())) # List of Thi
 workdir = idata[6].strip()
 checklimit = double(idata[7]) # Cutoff for contribution from neighbor replicas
-
+0
 
 ## Initialize outputs...
 #hout = open('histogram_stwham.dat', 'w')
@@ -86,7 +94,7 @@ if (nbin < 0):
     print "Err: Emin must be smaller than Emax.\n"
     sys.exit()
 if (nReplica < 1):
-    print "Err: Must supply list of T1 and Th for each replica.\n"
+    print "Err: Must supply list of Tlo and Thi for each replica.\n"
     sys.exit()
 if (len(T1s) != len(T2s)):
     print "Err: Must have Tlo and Thi for all replicas.\n"

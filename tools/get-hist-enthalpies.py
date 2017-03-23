@@ -6,77 +6,90 @@ from numpy import *
 ##################
 ### For RESTMD ###
 ##################
-
+#
+# Take walker enthalpies/energies from multiple, identical
+# length trajectories, concatenate, and follow exchanges
+# to get replica enthalpies/energies. Start and stop are
+# file handles for each restarted simulation.
+#
+# Usage:
+# python get-hist-enthalpies start stop
+#
+##################
 ### PARAMETERS ###
-NumReplica = 8
+##################
+NumReplica = 2
 start = int(sys.argv[1])
 stop = int(sys.argv[2])
 
-steps = 200000
-exchange = 10000
-thermo = 100
+# Per-run info
+steps = 2000000
+exchange = 1000
+thermo = 50
+
+# Logfile info
+header = 94
+footer = 57
 ##################
-header = 98
-footer = 26
 
 length = steps/thermo
 length_walk = steps/exchange
 ratio = exchange/thermo
 
 print "Gather enthalpies from log files, follow exchanges, save data for each replica instead of per walker"
-print "#Replica:", NumReplica, "Start:", start, "Stop:", stop
 
 size = ((length)*(stop-start),3*NumReplica+1)
 size_walk = ((length)*(stop-start),NumReplica+1)
 full_data = empty(size)
 full_data[:] = NAN
-# Format: step, walk1, walk2,...walkN, rep1, rep2,...repN
+# Format: step, indx1, indx2,... indxN, walk1, walk2,...walkN, rep1, rep2,...repN
 
-first_flag = 0
+# Save Exchanges
+for i in range(stop-start):
+    wname = 'log.lammps' + '-' + str(start+i)
+    Walk = genfromtxt(wname, skip_header=3, skip_footer=1)
+    for j in range(NumReplica):
+        for k in range(length):
+            indx = k+(i*length)
+            if (exchange == steps):
+                full_data[:,j+1][indx] = int(Walk[j+1])
+            else:
+                full_data[:,j+1][indx] = int(Walk[:,j+1][k/ratio])
 
+# Save Walkers
 for i in range(NumReplica):
     print "\n===--- Walker", i, "---==="
     for j in range(stop-start):
-        # sum over data
-        hname = 'log/log.lammps.' + str(i) + '-' + str(start+j)
-        wname = 'log/log.lammps-' + str(start+j)
-
+        hname = str(i) + '/log.lammps.' + str(i) + '-' + str(start+j)
         Hist = genfromtxt(hname, skip_header=header, skip_footer=footer, usecols = (0,2))
-
-        print "Walker: ", i, "Data index: ", j
-        print "  Step start: ", Hist[0][0], "Step end: ", Hist[-1][0]
-        print "  Energy: min: ", amin(Hist[:,1]), "max: ", amax(Hist[:,1])
-
-        Walk = genfromtxt(wname, skip_header=3, skip_footer=1)
+        print "Walker: ", i, "Data index: ", j+start
+        print "Step start: ", Hist[0][0], "Step end: ", Hist[-1][0]
+        print "Energy: min: ", amin(Hist[:,1]), "max: ", amax(Hist[:,1])
 
         for k in range(length):
         # Load enthalpy data in global array
             indx = k+(j*length)
-            if (first_flag == 0):
-                full_data[:,0][indx] = Hist[:,0][k]
-            full_data[:,i+1][indx] = Hist[:,1][k]
-            full_data[:,i+NumReplica+1][indx] = int(Walk[:,i+1][k/ratio])
-            #print k, k+(j*length), k/ratio
+            full_data[:,0][indx] = Hist[:,0][k]
+            full_data[:,i+NumReplica+1][indx] = Hist[:,1][k]
 
-            for rep in range(NumReplica):
-                if (full_data[:,i+NumReplica+1][indx] == rep):
-                    full_data[:,rep+(2*NumReplica)+1][indx] = full_data[:,i+1][k]
-                if (full_data[:,i+NumReplica+1][indx] == NAN):
-                    sys.exit()
-    first_flag = 1
+# Save Replicas
+for rep in range(NumReplica):
+    for indx in range(len(full_data[:,0])):
+        for j in range(NumReplica):
+            if (full_data[:,j+1][indx] == rep):
+                full_data[:,rep+(2*NumReplica)+1][indx] = full_data[:,j+NumReplica+1][indx]
 
-
-print "Saving outputs..."
-#savetxt('full_replica_data.dat', full_data)
-walkers = empty(size_walk)
+print "\nSaving outputs..."
+savetxt('full_replica_data.dat', full_data)
+walkers = empty(size_walk, dtype=int)
 for rep in range(NumReplica):
     Rname = 'replica-' + str(rep) + '.dat'
     Wname = 'walker-' + str(rep) + '.dat'
     savetxt(Rname, full_data[:, (rep+(2*NumReplica)+1)])
-    savetxt(Wname, full_data[:, (rep+1)])
-    walkers[:,rep+1] = full_data[:,rep+NumReplica+1]
+    savetxt(Wname, full_data[:, (rep+NumReplica+1)])
+    walkers[:,rep+1] = full_data[:,rep+1].astype(int)
 
-walkers[:,0] = full_data[:,0]
-savetxt('exchange_list.dat', walkers)
+walkers[:,0] = full_data[:,0].astype(int)
+savetxt('exchange_list.dat', walkers, fmt='%d')
 
 sys.exit()
