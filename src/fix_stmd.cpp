@@ -64,7 +64,7 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
 
   global_freq = 1;
   scalar_flag = 1;
@@ -91,44 +91,28 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   if (f_flag == -1)
     error->all(FLERR,"STMD: invalid f-reduction scheme");
   
-  // Tolerances for STG3 & STG4
-  //finFval  = 1.00000001; // if same, skip to stg4
-  //pfinFval = 1.000001; // determines start of stg3
-  pfinFval = strtold(arg[5], NULL);
-  if (pfinFval > 1.1)
-    error->all(FLERR,"STMD: f-value precision too large\n");
-  else if (pfinFval == 0.) {
-    // Set default
-    pfinFval = 1.000001;
-  }
-  else if ((pfinFval < 1.0) && (pfinFval != 0.))
-    error->all(FLERR,"STMD: f-value precision must be larger than unity\n");
-  f_prec = strlen(arg[5]);
-  if (f_prec >= 18)
-    error->all(FLERR,"STMD: f-value precision too small\n");
-  // Hard code STG4 (no more f-reduction) to be 10 times less than STG3
-  finFval = ((pfinFval - 1.0) / 10 ) + 1.0;
-
   // Only used initially, controlled by restart
-  initf  = atof(arg[6]);
-  TL     = atof(arg[7]);
-  TH     = atof(arg[8]);
-  Emin   = atof(arg[9]);
-  Emax   = atof(arg[10]);
-  bin    = atoi(arg[11]);
+  initf  = atof(arg[5]); // Delta F
+  if (initf > 1.) 
+    error->all(FLERR,"STMD: initial deltaF value too large");
+  TL     = atof(arg[6]);
+  TH     = atof(arg[7]);
 
   // Controlled by input file
-  TSC1   = atof(arg[12]);
-  TSC2   = atof(arg[13]);
+  Emin   = atof(arg[8]);
+  Emax   = atof(arg[9]);
+  bin    = atof(arg[10]);
+  TSC1   = atof(arg[11]);
+  TSC2   = atof(arg[12]);
 
   // This value should be consistent with target temperature of thermostat fix
-  ST     = atof(arg[14]);
-
+  ST     = atof(arg[13]);
+  
   // 0 for new run, 1 for restart
   OREST = -1;
-  if (strcmp(arg[15],"yes") == 0)
+  if (strcmp(arg[14],"yes") == 0)
     OREST = 1;
-  else if (strcmp(arg[15],"no") == 0)
+  else if (strcmp(arg[14],"no") == 0)
     OREST = 0;
   else 
     error->all(FLERR,"STMD: invalid restart option");
@@ -250,6 +234,7 @@ void FixStmd::init()
 
   QEXPO = 0;
 
+  // Energy bin setup
   BinMin = round(Emin / bin);
   BinMax = round(Emax / bin);
 
@@ -265,7 +250,7 @@ void FixStmd::init()
   // }
   
   N = BinMax - BinMin + 1;
-
+  
   STG     = 1;
   SWf     = 1;
   SWfold  = 1;
@@ -278,8 +263,15 @@ void FixStmd::init()
   CountPH = 0;
   T = ST; // latest T_s at bin i
 
-  f = initf;
-  df = log(f) * 0.5 / (long double)bin;
+  // Delta-f tolerances
+  dFval3 = 0.0001;
+  dFval4 = 0.000002;
+  pfinFval = exp(dFval3 * 2 * bin);
+  finFval = exp(dFval4 * 2 * bin);
+
+  f = exp(initf * 2 * bin);
+  df = log(f) * 0.5 / bin;
+
   T0 = ST;
   T1 = TL / ST;
   T2 = TH / ST;
@@ -373,7 +365,7 @@ void FixStmd::init()
 
       memory->destroy(list);
     }
-    df = log(f) * 0.5 / (long double)bin;
+    df = log(f) * 0.5 / bin;
   }
 
   if ((stmd_logfile) && (nworlds > 1)) {
@@ -383,10 +375,10 @@ void FixStmd::init()
   if (stmd_logfile) {
     fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin); 
     fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin);
-    fprintf(logfile,"  Emin= %f Emax= %f f-value= %.*Lf df= %.*LF\n",Emin,Emax,f_prec,f,f_prec,df); 
-    fprintf(screen,"  Emin= %f Emax= %f f-value= %.*Lf df= %.*LF\n", Emin,Emax,f_prec,f,f_prec,df); 
-    fprintf(logfile,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec,pfinFval,f_prec,finFval);
-    fprintf(screen,"  tolerances: STG3= %.*Lf STG4= %.*Lf\n", f_prec,pfinFval,f_prec,finFval);
+    fprintf(logfile,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
+    fprintf(screen,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
+    fprintf(logfile,"  f-tolerances: STG3= %f STG4= %f\n",pfinFval,finFval);
+    fprintf(screen,"  f-tolerances: STG3= %f STG4= %f\n",pfinFval,finFval);
   }
 
   // Write values of all paramters to logfile
@@ -549,7 +541,7 @@ void FixStmd::write_orest()
     freopen(filename,"w",fp_orest);
 
     fprintf(fp_orest,"%f\n",list[0]);
-    fprintf(fp_orest,"%.*Lf\n",f_prec,f); // extra precision for f
+    fprintf(fp_orest,"%f\n",f);
     for (int i=2; i<numb; i++)
       fprintf(fp_orest,"%f\n",list[i]);
     for (int i=numb; i<N+numb; i++) 
@@ -602,14 +594,12 @@ int FixStmd::Yval(double potE)
   double Yhi = Y2[i+1];
   double Ylo = Y2[i-1];
 
-  //df = log(f) * 0.5 / (long double)bin;
-
   Y2[i+1] = Y2[i+1] / (1.0 - df * Y2[i+1]);
   Y2[i-1] = Y2[i-1] / (1.0 + df * Y2[i-1]);
 
   if (stmd_debug && stmd_logfile) {
-    fprintf(screen,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%.*Lf\n",potE,i,f_prec,df);
-    fprintf(logfile,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%.*Lf\n",potE,i,f_prec,df);
+    fprintf(screen,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%f\n",potE,i,df);
+    fprintf(logfile,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%f\n",potE,i,df);
     fprintf(screen,"    bin %d+1: T'= %f  T=%f  delta= %f\n",i,Y2[i+1],Yhi,Y2[i+1]-Yhi);
     fprintf(logfile,"    bin %d+1: T'= %f  T=%f  delta= %f\n",i,Y2[i+1],Yhi,Y2[i+1]-Yhi);
     fprintf(screen,"    bin %d-1: T'=%f  T=%f  delta= %f\n",i,Y2[i-1],Ylo,Y2[i-1]-Ylo);
@@ -749,8 +739,8 @@ void FixStmd::MAIN(int istep, double potE)
   if ((stmd_logfile) && (stmd_debug)) {
     fprintf(logfile,"STMD DEBUG: STAGE %i\n",STG);
     fprintf(screen,"STMD DEBUG: STAGE %i\n",STG);
-    fprintf(logfile,"  STMD: Count=%i, f=%.*Lf\n",Count,f_prec,f);
-    fprintf(screen,"  STMD: Count=%i, f=%.*Lf\n",Count,f_prec,f);
+    fprintf(logfile,"  STMD: Count=%i, f=%f\n",Count,f);
+    fprintf(screen,"  STMD: Count=%i, f=%f\n",Count,f);
   }
 
   // Statistical Temperature Update
@@ -779,13 +769,13 @@ void FixStmd::MAIN(int istep, double potE)
   // Hist Output
   int m = istep % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
-    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %.*Lf"
-        "\n",i,(i*bin)+Emin,Hist[i],Htot[i],Y2[i],CountH,totCi,f_prec,f);
+    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
+        "\n",i,(i*bin)+Emin,Hist[i],Htot[i],Y2[i],CountH,totCi,f);
     fprintf(fp_whnm,"\n\n");
   }
 
   // Production Run if STG >= 3
-  // STG3 START: Check histogram and further reduce f until <= 1.0000001
+  // STG3 START: Check histogram and further reduce f until cutoff
   if (STG >= 3) {
     m = istep % TSC2;
 
@@ -798,17 +788,17 @@ void FixStmd::MAIN(int istep, double potE)
       HCHK();
       if ((stmd_logfile) && (stmd_debug)) {
         fprintf(logfile,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
-        fprintf(logfile,"  STMD: f= %.*Lf  SWchk= %i\n",f_prec,f,SWchk);
+        fprintf(logfile,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
         fprintf(screen,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
-        fprintf(screen,"  STMD: f= %.*Lf  SWchk= %i\n",f_prec,f,SWchk);
+        fprintf(screen,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
       }
       if (SWfold != SWf) {
         if (STG == 3) // dont reduce if STG4
           f = sqrt(f);
-        df = log(f) * 0.5 / (long double)bin;
+        df = log(f) * 0.5 / bin;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD f-UPDATE: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
-          fprintf(screen,"  STMD f-UPDATE: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
+          fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
         }
         SWchk = 1;
         // Histogram reset
@@ -817,8 +807,8 @@ void FixStmd::MAIN(int istep, double potE)
       } else {
         SWchk++;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: f= %.*Lf  Swchk= %i T= %f\n",f_prec,f,SWchk,T);
-          fprintf(screen,"  STMD: f= %.*Lf  Swchk= %i T= %f\n",f_prec,f,SWchk,T);
+          fprintf(logfile,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
+          fprintf(screen,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
         }
       }
 
@@ -829,13 +819,13 @@ void FixStmd::MAIN(int istep, double potE)
       m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++)
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %.*Lf\n", i, (i*bin)+Emin,\
-              Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f_prec,f);
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
+              Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
     } // if ((m == 0) && (f_flag == 0))
 
-    // RESTMD, reduce f to sqrt(f) every TSC2 steps
+    // RESTMD, reduce f to sqrt(f) every TSC2 steps until cutoff
     if ((m == 0) && (f_flag > 0)) { 
       if ((stmd_logfile) && (stmd_debug)) {
         fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
@@ -843,10 +833,10 @@ void FixStmd::MAIN(int istep, double potE)
       }
       if (STG == 3) // dont reduce if STG4
         f = sqrt(f);
-      df = log(f) * 0.5 / (long double)bin;
+      df = log(f) * 0.5 / bin;
       if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
-        fprintf(screen,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
+        fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
+        fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
       }
 
       // Histogram reset
@@ -860,8 +850,8 @@ void FixStmd::MAIN(int istep, double potE)
       m = istep % RSTFRQ;
       if ((m == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++) 
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %.*Lf\n",i,(i*bin+Emin),Hist[i],\
-              PROH[i],Htot[i],Y2[i],CountH,CountPH,f_prec,f);
+          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n",i,(i*bin+Emin),Hist[i],\
+              PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
     } // if ((m == 0) && (f_flag >= 1))
@@ -869,7 +859,7 @@ void FixStmd::MAIN(int istep, double potE)
 
   // STG2 START: Check histogram and modify f value on STG2
   // If STMD, run until histogram is flat, then reduce f value 
-  // until <= 1.000001, else if RESTMD, reduce every TSC2 steps
+  // else if RESTMD, reduce every TSC2 steps
   if (STG == 2) {
     m = istep % TSC2;
 
@@ -887,13 +877,13 @@ void FixStmd::MAIN(int istep, double potE)
         fprintf(screen,"  STMD: SWfold= %i SWf= %i\n",SWfold,SWf);
       }
 
-      // F value update
+      // f value update
       if (SWfold != SWf) {
         f = sqrt(f);
-        df = log(f) * 0.5 / (long double)bin;
+        df = log(f) * 0.5 / bin;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD f-UPDATE: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
-          fprintf(screen,"  STMD f-UPDATE: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
+          fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
         }
 
         SWchk = 1;
@@ -902,18 +892,18 @@ void FixStmd::MAIN(int istep, double potE)
       } else SWchk++;
 
       if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD RESULTS: totCi= %i  f= %.*Lf  SWf= %i  SWchk= %i  "
-            "STG= %i\n",totCi,f_prec,f,SWf,SWchk,STG);
-        fprintf(screen,"  STMD RESULTS: totCi= %i  f= %.*Lf  SWf= %i  SWchk= %i  "
-            "STG= %i\n",totCi,f_prec,f,SWf,SWchk,STG);
+        fprintf(logfile,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+            "STG= %i\n",totCi,f,SWf,SWchk,STG);
+        fprintf(screen,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+            "STG= %i\n",totCi,f,SWf,SWchk,STG);
       }
 
       if (f <= pfinFval) {
         STG = 3;
         CountPH = 0;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
-          fprintf(screen,"  STMD: f= %.*Lf  SWf= %i  df= %.*Lf\n",f_prec,f,SWf,f_prec,df);
+          fprintf(logfile,"  STMD: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(screen,"  STMD: f= %f  SWf= %i  df= %f\n",f,SWf,df);
         }
         SWchk = 1;
         ResetPH();
@@ -928,14 +918,14 @@ void FixStmd::MAIN(int istep, double potE)
           fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
         }
         if (istep != 0) f = sqrt(f);
-        df = log(f) * 0.5 / (long double)bin;
+        df = log(f) * 0.5 / bin;
         if (f <= pfinFval) {
           STG = 3;
           CountPH = 0;
         }
 	    if ((stmd_logfile) && (stmd_debug)) {
-	      fprintf(logfile,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
-	      fprintf(screen,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
+	      fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
+	      fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
       }
 
       ResetPH();
@@ -959,20 +949,19 @@ void FixStmd::MAIN(int istep, double potE)
         if (f <= 1.0)
           error->all(FLERR,"f-value is less than unity");
 
-        df = log(f) * 0.5 / (long double)bin;
+        df = log(f) * 0.5 / bin;
         if (f <= pfinFval) {
           STG = 3;
           CountPH = 0;
         }
 	    if ((stmd_logfile) && (stmd_debug)) {
-	      fprintf(logfile,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
-	      fprintf(screen,"  STMD f-UPDATE: f= %.*Lf  df= %.*Lf\n",f_prec,f,f_prec,df);
+	      fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
+	      fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
       }
 
       ResetPH();
       CountH = 0;
 	  } // if ((m == 0) && (f_flag == 2)) 
-
   } // if (STG == 2)
 
   // STG1 START: Digging and chk stage on STG1

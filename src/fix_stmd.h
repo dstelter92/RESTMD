@@ -48,12 +48,11 @@ class FixStmd : public Fix {
   int STG;                  // stage flag
   int N;                    // number of bins
   double T;                 // latest sampled temperature
-  long double f;            // current f-value
+  double f;                 // current f-value
   double ST;                // kinetic temperature
   double T1, T2;            // scaled temperature cutoffs
 
  private:
-  int bin;                  // binsize
   int RSTFRQ;               // restart and print frequency
   int f_flag;               // determines type of f-reduction
   int TSC1;                 // dig reduction frequency
@@ -65,18 +64,19 @@ class FixStmd : public Fix {
   int totC,totCi;           // total counts
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int QEXPO;                // exponetial energy bins
-  int f_prec;               // f-value precision
 
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
 
+  double bin;                  // binsize
   double Emin,Emax;         // energy range
   double T0;                // kinetic temp
   double TL, TH;            // unscaled lower and upper T cutoff
   double CTmin,CTmax;       // temperature cutoffs
   double CutTmin,CutTmax;
-  long double finFval,pfinFval;  // f-tolerance for stg 3 and stg 4
-  long double initf,df;          // initial-f and delta-f
+  double dFval3,dFval4;     // deltaf-tolerance for stg 3 and stg 4
+  double finFval,pfinFval;  // f-tolerance for stg 3 and stg 4
+  double initf,df;          // initial-f and delta-f
   double HCKtol;            // histogram tolerance when chk flatness
   double Gamma;             // force scaling factor
 
