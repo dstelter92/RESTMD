@@ -119,6 +119,19 @@ E: Invalid f-reduction scheme
 
 Style provided for f-reduction is incorrect. Use hckh, sqrt, constant.
 
+E: Initial deltaF value too large
+
+Self-explanatory.
+
+E: Final deltaF value too small
+
+deltaF must remain large enough to update Ts, or else the update
+scheme is static and results in heavy trapping.
+
+E: Invalid restart option
+
+Must be "yes" or "no" in starting with valid oREST file.
+
 E: Restart file does not exist
 
 Self-explanatory, change oREST flag.
@@ -135,7 +148,8 @@ problems in the simulation which cause the energy -> infinity.
 
 E: f-value is less than unity
 
-Self-explanatory, f must be *at least* 1.
+f must always be *at least* 1. This error catches updates that
+cause f to be reduced below 1.
 
 E: 
 */
