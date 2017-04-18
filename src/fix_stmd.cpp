@@ -64,7 +64,7 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
 
   global_freq = 1;
   scalar_flag = 1;
@@ -92,35 +92,50 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,"STMD: invalid f-reduction scheme");
   
   // Only used initially, controlled by restart
-  initf  = atof(arg[5]); // Delta F
+  initf  = atof(arg[5]); // Delta F, init
   if (initf > 1.) 
     error->all(FLERR,"STMD: initial deltaF value too large");
-  TL     = atof(arg[6]);
-  TH     = atof(arg[7]);
+  
+  // Delta-f tolerances
+  //dFval3 = 0.00010;
+  dFval3 = atof(arg[6]); // Delta F, final
+  if (dFval3 < 0.00001)
+    error->all(FLERR,"STMD: final deltaF value too small");
+  dFval4 = dFval3 / 10.;
+  pfinFval = exp(dFval3 * 2 * bin);
+  finFval = exp(dFval4 * 2 * bin);
 
-  // Controlled by input file
-  Emin   = atof(arg[8]);
-  Emax   = atof(arg[9]);
-  bin    = atof(arg[10]);
-  TSC1   = atof(arg[11]);
-  TSC2   = atof(arg[12]);
+  // Used once, controlled by restart file
+  TL     = atof(arg[7]);
+  TH     = atof(arg[8]);
+
+  // Controlled by input file, not restart file
+  Emin   = atof(arg[9]);
+  Emax   = atof(arg[10]);
+  bin    = atof(arg[11]);
+  TSC1   = atoi(arg[12]);
+  TSC2   = atoi(arg[13]);
 
   // This value should be consistent with target temperature of thermostat fix
-  ST     = atof(arg[13]);
+  ST     = atof(arg[14]);
   
   // 0 for new run, 1 for restart
   OREST = -1;
-  if (strcmp(arg[14],"yes") == 0)
+  if (strcmp(arg[15],"yes") == 0)
     OREST = 1;
-  else if (strcmp(arg[14],"no") == 0)
+  else if (strcmp(arg[15],"no") == 0)
     OREST = 0;
   else 
     error->all(FLERR,"STMD: invalid restart option");
   if (OREST == -1)
     error->all(FLERR,"STMD: invalid restart option");
 
-  // Make dir_output hard coded to local dir
-  strcpy(dir_output,"./");
+  // Make dir_output default to local dir
+  if (narg == 17)
+    strcpy(dir_output,arg[17]);
+  else
+    strcpy(dir_output,"./");
+
   
   Y1 = Y2 = Prob = NULL;
   Hist = Htot = PROH = NULL;
@@ -175,9 +190,9 @@ void FixStmd::init()
     strcat(filename,walker);
     strcat(filename,".d");
     strcpy(filename_orest,filename);
-    if (fp_orest = fopen(filename, "r")) {
+    if (fp_orest = fopen(filename, "r"))
       fclose(fp_orest);
-    } else {
+    else {
       if (nworlds > 1) 
         error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
       else error->all(FLERR,"STMD: Restart file does not exist\n");
@@ -263,11 +278,13 @@ void FixStmd::init()
   CountPH = 0;
   T = ST; // latest T_s at bin i
 
+  /*
   // Delta-f tolerances
   dFval3 = 0.0001;
   dFval4 = 0.000002;
   pfinFval = exp(dFval3 * 2 * bin);
   finFval = exp(dFval4 * 2 * bin);
+  */
 
   f = exp(initf * 2 * bin);
   df = log(f) * 0.5 / bin;
@@ -373,8 +390,8 @@ void FixStmd::init()
     fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
     }
   if (stmd_logfile) {
-    fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin); 
-    fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %i\n",STG,N,bin);
+    fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %f\n",STG,N,bin); 
+    fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %f\n",STG,N,bin);
     fprintf(logfile,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
     fprintf(screen,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
     fprintf(logfile,"  f-tolerances: STG3= %f STG4= %f\n",pfinFval,finFval);
@@ -585,8 +602,8 @@ int FixStmd::Yval(double potE)
   int i = round(potE / double(bin)) - BinMin + 1;
 
   if ((i<1) || (i>N-1)) {
-    fprintf(screen,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
-    fprintf(logfile,"Error in Yval: potE= %f  bin= %i  i= %i\n",potE,bin,i);
+    fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
+    fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
     if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Histogram index out of range");
     else error->one(FLERR,"STMD: Histogram index out of range");
   }
