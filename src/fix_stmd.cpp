@@ -282,9 +282,9 @@ void FixStmd::init()
   // Delta-f tolerances
   dFval3 = 0.0001;
   dFval4 = 0.000002;
+  */
   pfinFval = exp(dFval3 * 2 * bin);
   finFval = exp(dFval4 * 2 * bin);
-  */
 
   f = exp(initf * 2 * bin);
   df = log(f) * 0.5 / bin;

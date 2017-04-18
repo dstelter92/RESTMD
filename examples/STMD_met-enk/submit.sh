@@ -23,10 +23,6 @@ else
 fi
 sleep 2
 
-# Update Walkers
-#tail -1 log.lammps | awk '{for (i=2; i<=NF; i++) print $i}' | tr '\n' ' ' > last_walkers
-#sed -e "s/ZZZ/$(sed 's:/:\\/:g' last_walkers)/" restart.in.restmd.template > restart.in.restmd
-
 LAST=$(($LAST + 1))
 echo $LAST > last
 sleep 2
