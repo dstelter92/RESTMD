@@ -3,16 +3,15 @@ Replica Exchange Statistical-Temperature Molecular Dynamics
 via modification of temper module in LAMMPS.
 
 TO DO:
-[x] Make STMD restart [6-30-15]
-{x] Add universe variable to each *.d file created by fix_stmd.cpp [7-2-15]
-[x] Add any necessary RESTMD restart information to oREST.d and iREST.d [9-30-15]
-[x] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp [9-30-15]
+[x] Make STMD restart 
+{x] Add universe variable to each *.d file created by fix_stmd.cpp 
+[x] Add any necessary RESTMD restart information to oREST.d and iREST.d 
+[x] Obtain acceptance criteria for RESTMD from oREST.d and replace metropolis criteria in temper.cpp 
 [x] Check velocity rescaling, verify acceptance criteria
 [x] Ensure swaps take place correctly
 [x] Benchmark algorithm, 60nm and 100nm implicit solvent lipid vesicles: http://i.imgur.com/Zx1QBLw.png 
 [x] Clean out input/output for use by others
-[ ] Create Documentation...
+[ ] Create example simulations
+[ ] Create documentation
 [ ] Prepare for LAMMPS release, last bugchecks!
 
-Documentation:
-http://github.com/dstelter92/RESTMD/wiki 
