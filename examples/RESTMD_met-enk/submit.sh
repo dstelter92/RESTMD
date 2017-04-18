@@ -39,7 +39,7 @@ echo $LAST > last
 sleep 2
 
 # (Uncomment to) Resubmit
-#if [ $LAST -lt 20 ]
+#if [ $LAST -lt 21 ]
 #then
 #  qsub submit.sh
 #  #./submit.sh
