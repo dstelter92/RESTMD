@@ -12,7 +12,7 @@ fi
 for ((i=$start; i<$stop; i++))
 do
     echo -ne "File index: $i"\\r
-    grep -v '[a-zA-Z]' ../log.lammps-$i | awk '{if(NF==7 && $1%100==0) print $3/5100}' | head -n -5 | tail -n +9 >> energies.dat
+    grep -v '[a-zA-Z]' ../log.lammps-$i | awk '{if(NF==6 && $1%100==0) print $3}' | head -n -5 | tail -n +9 >> energies.dat
 done
 
 exit 0

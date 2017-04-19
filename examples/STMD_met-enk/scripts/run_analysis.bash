@@ -20,7 +20,7 @@ START=$2
 STOP=$3
 
 # Get enthalpies per replica
-./get-energies.sh $START $STOP
+./get_energies.sh $START $STOP
 sleep 2
 
 # Average production WT files, sorted above, for each replica

@@ -9,8 +9,8 @@ start = int(sys.argv[1])
 stop = int(sys.argv[2])
 rep = int(sys.argv[3])
 
-path = '../replica_data/' + str(rep) + '/'
-basename = 'WT'
+path = '../0/'
+basename = 'WT.0.d'
 
 fname = path + basename + '-' + str(start)
 num = stop - start

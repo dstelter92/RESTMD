@@ -110,7 +110,7 @@ print "Replica: "
 for l in range(nReplica):
     sys.stdout.write("%d<->%d " % (T1s[l], T2s[l]))
     sys.stdout.flush()
-    data = loadtxt("%sreplica-%d.dat" % (workdir, l))
+    data = loadtxt("%senergies.dat" % (workdir))
     # Calculate histogram
     hist[:,l], edges = histogramdd(ravel(data), bins=nbin, range=[(Emin, Emax)])
 
