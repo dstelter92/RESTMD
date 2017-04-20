@@ -16,7 +16,7 @@ steps = 1000000
 exchange = 1000
 thermo = 50
 
-header = 98 # match to log.lammps.0 files
+header = 99
 footer = 57
 ##################
 
