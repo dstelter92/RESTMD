@@ -990,8 +990,8 @@ void FixStmd::MAIN(int istep, double potE)
     m = istep % TSC1;
     if (m == 0) {
       if (stmd_logfile) {
-        fprintf(logfile,"  STMD DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
-        fprintf(screen,"  STMD DIG: istep= %i  TSC1= %i T= %f\n",istep,TSC1,T);
+        fprintf(logfile,"  STMD DIG: istep= %i  TSC1= %i Tlow= %f\n",istep,TSC1,T);
+        fprintf(screen,"  STMD DIG: istep= %i  TSC1= %i Tlow= %f\n",istep,TSC1,T);
       }
 
       dig();
