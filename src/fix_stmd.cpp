@@ -66,8 +66,11 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 {
   if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
 
-  global_freq = 1;
   scalar_flag = 1;
+  array_flag = 1;
+  extscalar = 0;
+  extarray = 1;
+  global_freq = 1;
 
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
