@@ -71,12 +71,13 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   extscalar = 0;
   extarray = 1;
   global_freq = 1;
+  restart_file = 1;
 
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
   // a stmd.inp file is probably the best mechanism for input.
   //
-  // fix fxstmd all stmd RSTFRQ f_style init_f Tlo Thi Elo Ehi binsize TSC1 TSC2 ST OREST
+  // fix fxstmd all stmd RSTFRQ f_style init_f final_f Tlo Thi Elo Ehi binsize TSC1 TSC2 ST OREST
 
   // Probably a good idea to set this equal to restart value in input
   RSTFRQ = atoi(arg[3]);      
@@ -1015,7 +1016,7 @@ void FixStmd::MAIN(int istep, double potE)
 
 double FixStmd::compute_scalar()
 {
-  return Gamma;
+  return T0 / Gamma ;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1046,4 +1047,17 @@ void FixStmd::modify_fix(int which, double *values, char *notused)
   else if (which == 3) {
     for (int i=0; i<N; i++) Y2[i] = values[i];
   }
+}
+
+/* ---------------------------------------------------------------------- 
+    extract scale factor
+------------------------------------------------------------------------- */
+
+void *FixStmd::extract(const char *str, int &dim)
+{
+  dim=0;
+  if (strcmp(str,"scale_stmd") == 0) {
+    return &Gamma;
+  }
+  return NULL;
 }
