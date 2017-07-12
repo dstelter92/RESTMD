@@ -69,7 +69,7 @@ class FixStmd : public Fix {
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
 
-  double bin;                  // binsize
+  double bin;               // binsize
   double Emin,Emax;         // energy range
   double T0;                // kinetic temp
   double TL, TH;            // unscaled lower and upper T cutoff

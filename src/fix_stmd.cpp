@@ -1016,7 +1016,7 @@ void FixStmd::MAIN(int istep, double potE)
 
 double FixStmd::compute_scalar()
 {
-  return T0 / Gamma ;
+  return T;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1025,11 +1025,16 @@ double FixStmd::compute_array(int i, int j)
 {
   // Returns data from arrays
   double xx;
-  if      (i == 0) xx = static_cast<double>(BinMax-BinMin+1); // Number of bins
-  else if (i == 1) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
-  else if (i == 2) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
-  else if (i == 3) xx = static_cast<double>(bin);             // Bin spacing of energy: \Delta
-  else if (i == 4) xx = Y2[j];                                // Histogram of temperature 1/T*j
+  if      (i == 0) xx = static_cast<double>(STG);             // Current stage
+  else if (i == 1) xx = static_cast<double>(BinMax-BinMin+1); // Number of bins
+  else if (i == 2) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
+  else if (i == 3) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
+  else if (i == 4) xx = static_cast<double>(bin);             // Bin spacing of energy: \Delta
+  else if (i == 5) xx = f;                                    // f-value
+  else if (i == 6) xx = Gamma;                                // force scalling factor
+  else if (i == 7) xx = Y2[j]*ST;                             // Histogram of temperature 1/T*j
+  else if (i == 8) xx = static_cast<double>(Hist[j]);         // Histogram of energies*j
+  else if (i == 9) xx = static_cast<double>(PROH[j]);         // Production histogram*j
 
   return xx;
 }
@@ -1049,9 +1054,9 @@ void FixStmd::modify_fix(int which, double *values, char *notused)
   }
 }
 
-/* ---------------------------------------------------------------------- 
-    extract scale factor
-------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+/* --- Extract scale factor                                           --- */
+/* ---------------------------------------------------------------------- */
 
 void *FixStmd::extract(const char *str, int &dim)
 {
