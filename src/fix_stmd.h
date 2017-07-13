@@ -39,6 +39,7 @@ class FixStmd : public Fix {
   double memory_usage();
 
   double compute_scalar();
+  double compute_vector(int);
   double compute_array(int, int);
   void modify_fix(int, double *, char *);
   void write_orest();
@@ -65,6 +66,7 @@ class FixStmd : public Fix {
   int totC,totCi;           // total counts
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int QEXPO;                // exponetial energy bins
+  int curbin;               // current bin sampled
 
   int stmd_logfile,stmd_debug;
   int pe_compute_id;

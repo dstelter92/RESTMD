@@ -67,12 +67,15 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
 
   scalar_flag = 1;
+  vector_flag = 1;
   array_flag = 1;
+
   extscalar = 0;
-  extarray = 1;
+  extvector = 0;
+  extarray = 0;
   global_freq = 1;
   restart_file = 1;
-
+ 
   // This is the subset of variables explicitly given in the charmm.inp file
   // If the full set is expected to be modified by a user, then reading 
   // a stmd.inp file is probably the best mechanism for input.
@@ -151,6 +154,16 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   //stmd_debug = 1;
 
   fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
+  
+  // Energy bin setup
+  BinMin = round(Emin / bin);
+  BinMax = round(Emax / bin);
+  N = BinMax - BinMin + 1;
+  
+  size_vector = 8;
+  size_array_cols = 4;
+  size_array_rows = N;
+
 }
 
 /* ---------------------------------------------------------------------- */
@@ -251,25 +264,6 @@ void FixStmd::init()
   CutTmax  = 50.0;
   HCKtol   = 0.2;
 
-  QEXPO = 0;
-
-  // Energy bin setup
-  BinMin = round(Emin / bin);
-  BinMax = round(Emax / bin);
-
-  // Exponential energy bin setup
-  // if (QEXPO) {
-  //   exv = exfB - exfA;
-  //   exc = -exv / log(exal) / exbe;
-  //   exb = (exeB - exeA) / (exp(exfB / exc) - exp(exfA / exc));
-  //   exa = exeB - exb * exp(exfB / exc);
-  //   if ((Emin - exa) / exb <= 0.0) error->warning(FLERR,"WARNNING!!! EXPONENT ENE BIN SETUP");
-  //   BinMin = round(log((Emin - exa) / exb));
-  //   BinMax = round(log((Emax - exa) / exb));
-  // }
-  
-  N = BinMax - BinMin + 1;
-  
   STG     = 1;
   SWf     = 1;
   SWfold  = 1;
@@ -603,7 +597,8 @@ void FixStmd::dig()
 
 int FixStmd::Yval(double potE)
 {
-  int i = round(potE / double(bin)) - BinMin + 1;
+  curbin = round(potE / double(bin)) - BinMin + 1;
+  int i = curbin;
 
   if ((i<1) || (i>N-1)) {
     fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
@@ -1016,7 +1011,25 @@ void FixStmd::MAIN(int istep, double potE)
 
 double FixStmd::compute_scalar()
 {
-  return T;
+  return T*ST;
+}
+
+/* ---------------------------------------------------------------------- */
+
+double FixStmd::compute_vector(int i)
+{
+  // Returns usefull info for STMD
+  double xx;
+  if      (i == 1) xx = static_cast<double>(STG);             // Current STG
+  else if (i == 2) xx = static_cast<double>(N);               // Number of bins
+  else if (i == 3) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
+  else if (i == 4) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
+  else if (i == 5) xx = static_cast<double>(curbin);          // current sampled bin
+  else if (i == 6) xx = bin;                                  // Bin spacing of energy: \Delta
+  else if (i == 7) xx = f;                                    // f-value
+  else if (i == 8) xx = Gamma;                                // force scalling factor
+
+  return xx;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1025,16 +1038,10 @@ double FixStmd::compute_array(int i, int j)
 {
   // Returns data from arrays
   double xx;
-  if      (i == 0) xx = static_cast<double>(STG);             // Current stage
-  else if (i == 1) xx = static_cast<double>(BinMax-BinMin+1); // Number of bins
-  else if (i == 2) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
-  else if (i == 3) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
-  else if (i == 4) xx = static_cast<double>(bin);             // Bin spacing of energy: \Delta
-  else if (i == 5) xx = f;                                    // f-value
-  else if (i == 6) xx = Gamma;                                // force scalling factor
-  else if (i == 7) xx = Y2[j]*ST;                             // Histogram of temperature 1/T*j
-  else if (i == 8) xx = static_cast<double>(Hist[j]);         // Histogram of energies*j
-  else if (i == 9) xx = static_cast<double>(PROH[j]);         // Production histogram*j
+  if      (i == 1) xx = (j*bin)+Emin;    // Binned Energies
+  else if (i == 2) xx = Y2[j];           // Histogram of temperature 1/T*j
+  else if (i == 3) xx = Hist[j];         // Histogram of energies*j
+  else if (i == 4) xx = PROH[j];         // Production histogram*j
 
   return xx;
 }
@@ -1055,7 +1062,7 @@ void FixStmd::modify_fix(int which, double *values, char *notused)
 }
 
 /* ---------------------------------------------------------------------- */
-/* --- Extract scale factor                                           --- */
+/*     Extract scale factor                                               */
 /* ---------------------------------------------------------------------- */
 
 void *FixStmd::extract(const char *str, int &dim)
