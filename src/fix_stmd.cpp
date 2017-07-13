@@ -1018,16 +1018,16 @@ double FixStmd::compute_scalar()
 
 double FixStmd::compute_vector(int i)
 {
-  // Returns usefull info for STMD
+  // Returns useful info for STMD
   double xx;
-  if      (i == 1) xx = static_cast<double>(STG);             // Current STG
-  else if (i == 2) xx = static_cast<double>(N);               // Number of bins
-  else if (i == 3) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
-  else if (i == 4) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
-  else if (i == 5) xx = static_cast<double>(curbin);          // current sampled bin
-  else if (i == 6) xx = bin;                                  // Bin spacing of energy: \Delta
-  else if (i == 7) xx = f;                                    // f-value
-  else if (i == 8) xx = Gamma;                                // force scalling factor
+  if      (i == 0) xx = static_cast<double>(STG);             // Current STG
+  else if (i == 1) xx = static_cast<double>(N);               // Number of bins
+  else if (i == 2) xx = static_cast<double>(BinMin);          // Lower limit of energy: Emin
+  else if (i == 3) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
+  else if (i == 4) xx = static_cast<double>(curbin);          // Last sampled bin
+  else if (i == 5) xx = bin;                                  // Bin spacing of energy: \Delta
+  else if (i == 6) xx = f;                                    // f-value
+  else if (i == 7) xx = Gamma;                                // force scalling factor
 
   return xx;
 }
@@ -1038,10 +1038,10 @@ double FixStmd::compute_array(int i, int j)
 {
   // Returns data from arrays
   double xx;
-  if      (i == 1) xx = (j*bin)+Emin;    // Binned Energies
-  else if (i == 2) xx = Y2[j];           // Histogram of temperature 1/T*j
-  else if (i == 3) xx = Hist[j];         // Histogram of energies*j
-  else if (i == 4) xx = PROH[j];         // Production histogram*j
+  if      (i == 0) xx = (j*bin)+Emin;    // Binned Energies
+  else if (i == 1) xx = Y2[j];           // Histogram of temperature 1/T*j
+  else if (i == 2) xx = Hist[j];         // Histogram of energies*j
+  else if (i == 3) xx = PROH[j];         // Production histogram*j
 
   return xx;
 }
