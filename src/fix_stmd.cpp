@@ -555,14 +555,14 @@ void FixStmd::write_orest()
     strcat(filename,".d");
     freopen(filename,"w",fp_orest);
 
-    fprintf(fp_orest,"%f\n",list[0]);
+    fprintf(fp_orest,"%d\n",STG);
     fprintf(fp_orest,"%f\n",f);
     for (int i=2; i<numb; i++)
       fprintf(fp_orest,"%f\n",list[i]);
     for (int i=numb; i<N+numb; i++) 
       fprintf(fp_orest,"%f ",list[i]);
     fprintf(fp_orest,"\n");
-    for (int i=N+numb; i<2*N+numb; i++) 
+    for (int i=N+numb; i<(2*N)+numb; i++) 
       fprintf(fp_orest,"%f ",list[i]);
     fprintf(fp_orest,"\n");
     for (int i=2*N+numb; i<nsize; i++) 
@@ -604,7 +604,7 @@ int FixStmd::Yval(double potE)
     fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
     fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
     if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Histogram index out of range");
-    else error->one(FLERR,"STMD: Histogram index out of range");
+    else error->all(FLERR,"STMD: Histogram index out of range");
   }
 
   double Yhi = Y2[i+1];
