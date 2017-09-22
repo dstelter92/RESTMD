@@ -199,23 +199,6 @@ void FixStmd::init()
   char walker[256]; 
   sprintf(walker,"%i",iworld);
 
-  // Check if file exists/has data, otherwise exit!
-  if (OREST) {
-    char filename[256];
-    strcpy(filename,dir_output);
-    strcat(filename,"/oREST.");
-    strcat(filename,walker);
-    strcat(filename,".d");
-    strcpy(filename_orest,filename);
-    if (fp_orest = fopen(filename, "r"))
-      fclose(fp_orest);
-    else {
-      if (nworlds > 1) 
-        error->universe_all(FLERR,"RESTMD: Restart file does not exist\n");
-      else error->all(FLERR,"STMD: Restart file does not exist\n");
-    }
-  }
-
   if (comm->me == 0) {
     char filename[256];
     if (!fp_wtnm) {
@@ -248,7 +231,7 @@ void FixStmd::init()
       strcat(filename,walker);
       strcat(filename,".d");
       strcpy(filename_orest,filename);
-      fp_orest  = fopen(filename,"w");
+      fp_orest = fopen(filename,"w");
     }
     if ((!fp_orest) && (OREST)) {
       strcpy(filename,dir_output);
@@ -256,7 +239,11 @@ void FixStmd::init()
       strcat(filename,walker);
       strcat(filename,".d");
       strcpy(filename_orest,filename);
-      fp_orest  = fopen(filename,"r");
+
+      // Check if file exists
+      fp_orest = fopen(filename,"r");
+      if (!fp_orest)
+        error->one(FLERR,"STMD: Restart file does not exist\n");
     }
   }
 
@@ -351,6 +338,13 @@ void FixStmd::init()
       strcat(filename,walker);
       strcat(filename,".d");
       std::ifstream file(filename);
+
+      // Check if file empty before getting data
+      file.seekg(0,file.end);
+      int sz = file.tellg();
+      file.seekg(0,file.beg);
+      if (sz < 3)
+        error->one(FLERR,"STMD: Restart file is empty/invalid\n");
 
       for (int i=0; i<nsize; i++) 
         file >> list[i];
@@ -555,18 +549,59 @@ void FixStmd::write_orest()
     strcat(filename,".d");
     freopen(filename,"w",fp_orest);
 
+    if (fp_orest == NULL)
+      error->all(FLERR,"Cannot open STMD restart file");
+
+    if (stmd_debug && stmd_logfile) {
+      fprintf(screen,"%d\n",STG);
+      fprintf(screen,"%f\n",f);
+      fprintf(logfile,"%d\n",STG);
+      fprintf(logfile,"%f\n",f);
+    }
     fprintf(fp_orest,"%d\n",STG);
     fprintf(fp_orest,"%f\n",f);
-    for (int i=2; i<numb; i++)
+    for (int i=2; i<numb; i++) {
+      if (stmd_debug && stmd_logfile) {
+        fprintf(screen,"%f\n",list[i]);
+        fprintf(logfile,"%f\n",list[i]);
+      }
       fprintf(fp_orest,"%f\n",list[i]);
-    for (int i=numb; i<N+numb; i++) 
+    }
+    for (int i=numb; i<N+numb; i++) {
+      if (stmd_debug && stmd_logfile) {
+        fprintf(screen,"%f ",list[i]);
+        fprintf(logfile,"%f ",list[i]);
+      }
       fprintf(fp_orest,"%f ",list[i]);
+    }
+    if (stmd_debug && stmd_logfile) {
+      fprintf(screen,"\n");
+      fprintf(logfile,"\n");
+    }
     fprintf(fp_orest,"\n");
-    for (int i=N+numb; i<(2*N)+numb; i++) 
+    for (int i=N+numb; i<(2*N)+numb; i++) {
+      if (stmd_debug && stmd_logfile) {
+        fprintf(screen,"%f ",list[i]);
+        fprintf(logfile,"%f ",list[i]);
+      }
       fprintf(fp_orest,"%f ",list[i]);
+    }
+    if (stmd_debug && stmd_logfile) {
+      fprintf(screen,"\n");
+      fprintf(logfile,"\n");
+    }
     fprintf(fp_orest,"\n");
-    for (int i=2*N+numb; i<nsize; i++) 
+    for (int i=(2*N)+numb; i<nsize; i++) {
+      if (stmd_debug && stmd_logfile) {
+        fprintf(screen,"%f ",list[i]);
+        fprintf(logfile,"%f ",list[i]);
+      }
       fprintf(fp_orest,"%f ",list[i]);
+    }
+    if (stmd_debug && stmd_logfile) {
+      fprintf(screen,"\n");
+      fprintf(logfile,"\n");
+    }
     fprintf(fp_orest,"\n");
 
     memory->destroy(list);
@@ -603,8 +638,7 @@ int FixStmd::Yval(double potE)
   if ((i<1) || (i>N-1)) {
     fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
     fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
-    if (nworlds > 1) error->universe_all(FLERR,"RESTMD: Histogram index out of range");
-    else error->all(FLERR,"STMD: Histogram index out of range");
+    error->one(FLERR,"STMD: Histogram index out of range");
   }
 
   double Yhi = Y2[i+1];
