@@ -242,8 +242,13 @@ void FixStmd::init()
 
       // Check if file exists
       fp_orest = fopen(filename,"r");
-      if (!fp_orest)
+      if (!fp_orest) {
+        if (stmd_logfile) {
+          fprintf(screen,"Restart file: oREST.%s.d is empty\n",walker);
+          fprintf(logfile,"Restart file: oREST.%s.d is empty\n",walker);
+        }
         error->one(FLERR,"STMD: Restart file does not exist\n");
+      }
     }
   }
 
@@ -343,8 +348,13 @@ void FixStmd::init()
       file.seekg(0,file.end);
       int sz = file.tellg();
       file.seekg(0,file.beg);
-      if (sz < 3)
+      if (sz < (nsize*sizeof(double))) {
+        if (stmd_logfile) {
+          fprintf(screen,"Restart file: oREST.%s.d is an invalid format\n",walker);
+          fprintf(logfile,"Restart file: oREST.%s.d is an invalid format\n",walker);
+        }
         error->one(FLERR,"STMD: Restart file is empty/invalid\n");
+      }
 
       for (int i=0; i<nsize; i++) 
         file >> list[i];
@@ -432,7 +442,11 @@ void FixStmd::post_force(int vflag)
   int nlocal = atom->nlocal;
 
   // Get current value of potential energy from compute/pe
-  double potE = modify->compute[pe_compute_id]->compute_scalar(); 
+  double potE = modify->compute[pe_compute_id]->compute_scalar();
+
+  // Check if potE is outside of bounds before continuing
+  if ((potE < Emin) || (potE > Emax))
+    error->all(FLERR,"STMD: Sampled potential energy out of range\n");
 
   // Master rank will compute scaling factor and then Bcast to world
   MAIN(update->ntimestep,potE);
@@ -549,7 +563,7 @@ void FixStmd::write_orest()
     strcat(filename,".d");
     freopen(filename,"w",fp_orest);
 
-    if (fp_orest == NULL)
+    if (fp_orest == NULL) 
       error->all(FLERR,"Cannot open STMD restart file");
 
     if (stmd_debug && stmd_logfile) {
@@ -636,9 +650,11 @@ int FixStmd::Yval(double potE)
   int i = curbin;
 
   if ((i<1) || (i>N-1)) {
-    fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
-    fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
-    error->one(FLERR,"STMD: Histogram index out of range");
+    if ((stmd_logfile) && (comm->me == 0)) {
+      fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
+      fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
+    }
+    error->all(FLERR,"STMD: Histogram index out of range");
   }
 
   double Yhi = Y2[i+1];
