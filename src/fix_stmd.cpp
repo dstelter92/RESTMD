@@ -85,14 +85,18 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   // Probably a good idea to set this equal to restart value in input
   RSTFRQ = atoi(arg[3]);      
 
-  // Setup type of f-reduction
+  // Setup type of f-reduction scheme
   f_flag = -1;
-  if (strcmp(arg[4],"hchk") == 0) 
+  if (strcmp(arg[4],"none") == 0)
     f_flag = 0;
-  else if (strcmp(arg[4],"sqrt") == 0)
+  else if (strcmp(arg[4],"hchk") == 0) 
     f_flag = 1;
-  else if (strcmp(arg[4],"constant") == 0)
+  else if (strcmp(arg[4],"sqrt") == 0)
     f_flag = 2;
+  else if (strcmp(arg[4],"constant_f") == 0)
+    f_flag = 3;
+  else if (strcmp(arg[4],"constant_df") == 0)
+    f_flag = 4;
   else
     error->all(FLERR,"STMD: invalid f-reduction scheme");
   if (f_flag == -1)
@@ -833,207 +837,195 @@ void FixStmd::MAIN(int istep, double potE)
   }
 
   // Hist Output
-  int m = istep % RSTFRQ;
-  if ((m == 0) && (comm->me == 0)) {
+  int o = istep % RSTFRQ;
+  if ((o == 0) && (comm->me == 0)) {
     for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
         "\n",i,(i*bin)+Emin,Hist[i],Htot[i],Y2[i],CountH,totCi,f);
     fprintf(fp_whnm,"\n\n");
   }
-
+  
   // Production Run if STG >= 3
   // STG3 START: Check histogram and further reduce f until cutoff
   if (STG >= 3) {
-    m = istep % TSC2;
+    int m = istep % TSC2;
 
-    // STMD, reduce f based on histogram check
-    if ((m == 0) && (f_flag == 0)) { 
+    // STMD, reduce f based on histogram flatness (original form)
+    if (m == 0) {
       if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
-        fprintf(screen,"  STMD CHK HIST: istep= %i  TSC2= %i\n",istep,TSC2);
+        fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+        fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
       }
-      HCHK();
-      if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
-        fprintf(logfile,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
-        fprintf(screen,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
-        fprintf(screen,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
-      }
-      if (SWfold != SWf) {
+
+      // Reduction based on histogram flatness
+      if (f_flag == 1) { 
+        HCHK(); // Check flatness
+        if ((stmd_logfile) && (stmd_debug)) {
+          fprintf(logfile,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
+          fprintf(logfile,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
+          fprintf(screen,"  STMD: SWfold= %i  SWf= %i\n",SWfold,SWf);
+          fprintf(screen,"  STMD: f= %f  SWchk= %i\n",f,SWchk);
+        }
+        if (SWfold != SWf) {
+          if (STG == 3) // dont reduce if STG4
+            f = sqrt(f); // reduce f
+          df = log(f) * 0.5 / bin;
+          if ((stmd_logfile) && (stmd_debug)) {
+            fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+            fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          }
+          SWchk = 1;
+          // Histogram reset
+          ResetPH();
+          CountH = 0;
+        } 
+        else {
+          SWchk++;
+          if ((stmd_logfile) && (stmd_debug)) {
+            fprintf(logfile,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
+            fprintf(screen,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
+          }
+        }
+      } // if (f_flag == 1)
+
+      if (f_flag > 1) {
+        if ((stmd_logfile) && (stmd_debug)) {
+          fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+          fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+        }
         if (STG == 3) // dont reduce if STG4
           f = sqrt(f);
         df = log(f) * 0.5 / bin;
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-          fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
+          fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
         }
-        SWchk = 1;
+      
         // Histogram reset
         ResetPH();
         CountH = 0;
-      } else {
-        SWchk++;
-        if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
-          fprintf(screen,"  STMD: f= %f  Swchk= %i T= %f\n",f,SWchk,T);
-        }
-      }
+      } // if (f_flag > 1)
 
       // Check stage 3
       if (f <= finFval) STG = 4;
 
       // Production run: Hist Output STMD
-      m = istep % RSTFRQ;
-      if ((m == 0) && (comm->me == 0)) {
+      if ((o == 0) && (comm->me == 0)) {
         for (int i=0; i<N; i++)
           fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
               Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
         fprintf(fp_whpnm,"\n\n");
       }
-    } // if ((m == 0) && (f_flag == 0))
-
-    // RESTMD, reduce f to sqrt(f) every TSC2 steps until cutoff
-    if ((m == 0) && (f_flag > 0)) { 
-      if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
-        fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
-      }
-      if (STG == 3) // dont reduce if STG4
-        f = sqrt(f);
-      df = log(f) * 0.5 / bin;
-      if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
-        fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
-      }
-
-      // Histogram reset
-      ResetPH();
-      CountH = 0;
-
-      // Check stage 3
-      if (f <= finFval) STG = 4;
-
-      // Production run: Hist Output RESTMD
-      m = istep % RSTFRQ;
-      if ((m == 0) && (comm->me == 0)) {
-        for (int i=0; i<N; i++) 
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n",i,(i*bin+Emin),Hist[i],\
-              PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
-        fprintf(fp_whpnm,"\n\n");
-      }
-    } // if ((m == 0) && (f_flag >= 1))
+    } // if ((m == 0)
   } // if (STG >= 3)
 
   // STG2 START: Check histogram and modify f value on STG2
   // If STMD, run until histogram is flat, then reduce f value 
   // else if RESTMD, reduce every TSC2 steps
   if (STG == 2) {
-    m = istep % TSC2;
 
-    // If STMD...
-    if ((m == 0) && (f_flag == 0)) { 
+    int m = istep % TSC2;
+    if (m == 0) {
       if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD CHK HIST: istep= %i  "
-            "TSC2= %i\n",istep,TSC2);
-        fprintf(screen,"  STMD CHK HIST: istep= %i  "
-            "TSC2= %i\n",istep,TSC2);
-      }
-      HCHK();
-      if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD: SWfold= %i SWf= %i\n",SWfold,SWf);
-        fprintf(screen,"  STMD: SWfold= %i SWf= %i\n",SWfold,SWf);
+        fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+        fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
       }
 
-      // f value update
-      if (SWfold != SWf) {
-        f = sqrt(f);
-        df = log(f) * 0.5 / bin;
-        if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-          fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-        }
-
-        SWchk = 1;
+      // No f-reduction, simulate at initf only!
+      if (f_flag == 0) { 
         ResetPH();
         CountH = 0;
-      } else SWchk++;
-
-      if ((stmd_logfile) && (stmd_debug)) {
-        fprintf(logfile,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
-            "STG= %i\n",totCi,f,SWf,SWchk,STG);
-        fprintf(screen,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
-            "STG= %i\n",totCi,f,SWf,SWchk,STG);
       }
 
-      if (f <= pfinFval) {
-        STG = 3;
-        CountPH = 0;
+      // Standard f-reduction as HCHK() every m steps
+      if (f_flag == 1) { 
+        HCHK();
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: f= %f  SWf= %i  df= %f\n",f,SWf,df);
-          fprintf(screen,"  STMD: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          fprintf(logfile,"  STMD: SWfold= %i SWf= %i\n",SWfold,SWf);
+          fprintf(screen,"  STMD: SWfold= %i SWf= %i\n",SWfold,SWf);
         }
-        SWchk = 1;
-        ResetPH();
-        CountH = 0;
-      }      
-    } // if ((m == 0) && (f_flag == 0))
+        // f value update
+        if (SWfold != SWf) {
+          f = sqrt(f);
+          df = log(f) * 0.5 / bin;
+          if ((stmd_logfile) && (stmd_debug)) {
+            fprintf(logfile,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+            fprintf(screen,"  STMD f-UPDATE: f= %f  SWf= %i  df= %f\n",f,SWf,df);
+          }
+          SWchk = 1;
+          ResetPH();
+          CountH = 0;
+        }
+        else SWchk++;
 
-    // If RESTMD...
-    if ((m == 0) && (f_flag == 1)) { 
         if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
-          fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+          fprintf(logfile,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+              "STG= %i\n",totCi,f,SWf,SWchk,STG);
+          fprintf(screen,"  STMD RESULTS: totCi= %i  f= %f  SWf= %i  SWchk= %i  "
+              "STG= %i\n",totCi,f,SWf,SWchk,STG);
         }
-        if (istep != 0) f = sqrt(f);
-        df = log(f) * 0.5 / bin;
         if (f <= pfinFval) {
           STG = 3;
           CountPH = 0;
+          SWchk = 1;
+          ResetPH();
+          CountH = 0;
         }
-	    if ((stmd_logfile) && (stmd_debug)) {
-	      fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
-	      fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
-      }
+      } // if (f_flag == 1)
 
-      ResetPH();
-      CountH = 0;
-	  } // if ((m == 0) && (f_flag == 1)) 
-
-    // RESTMD, alternative f-reduction scheme
-    if ((m == 0) && (f_flag == 2)) { 
-        if ((stmd_logfile) && (stmd_debug)) {
-          fprintf(logfile,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
-          fprintf(screen,"  STMD: istep= %i  TSC2= %i\n",istep,TSC2);
+      if (f_flag == 2) { 
+      // Reduce as sqrtf every m steps
+        if (istep != 0) {
+          f = sqrt(f);
+          df = log(f) * 0.5 / bin;
         }
-        // Reduce f by 10%, if above cutoff
-        // otherwise, reduce by sqrt(f) 
+
+        ResetPH();
+        CountH = 0;
+      } // if (f_flag == 2)
+
+      // Reduce f by constant every m steps
+      // otherwise, reduce by sqrt(f) if too small
+      if (f_flag == 3) { 
         double reduce_val = 0.1;
         if (istep != 0) {
           if (f > (1+(2*reduce_val)))
             f = f - (reduce_val*f);
           else f = sqrt(f);
         }
-        if (f <= 1.0)
-          error->all(FLERR,"f-value is less than unity");
-
         df = log(f) * 0.5 / bin;
-        if (f <= pfinFval) {
-          STG = 3;
-          CountPH = 0;
+        ResetPH();
+        CountH = 0;
+      } // if (f_flag == 3)
+
+      // Reduce df by constant every m steps
+      if (f_flag == 4) {
+        double reduce_val = 0.01; // 1% reduction
+        if (istep != 0) {
+          df = df - (df * reduce_val);
+          f = exp(2 * bin * df);
         }
-	    if ((stmd_logfile) && (stmd_debug)) {
+      } // if (f_flag == 4)
+
+      if (f <= 1.0)
+        error->all(FLERR,"f-value is less than unity");
+
+      if ((stmd_logfile) && (stmd_debug) && (f_flag > 1)) {
 	      fprintf(logfile,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
 	      fprintf(screen,"  STMD f-UPDATE: f= %f  df= %f\n",f,df);
       }
 
-      ResetPH();
-      CountH = 0;
-	  } // if ((m == 0) && (f_flag == 2)) 
+      if ((f <= pfinFval) && (f_flag > 1)) {
+        STG = 3;
+        CountPH = 0;
+      }
+
+    } // if (m == 0)
   } // if (STG == 2)
 
   // STG1 START: Digging and chk stage on STG1
   // Run until lowest temperature sampled
   if (STG == 1) {
-    m = istep % TSC1;
+    int m = istep % TSC1;
     if (m == 0) {
       if (stmd_logfile) {
         fprintf(logfile,"  STMD DIG: istep= %i  TSC1= %i Tlow= %f\n",istep,TSC1,T);
@@ -1076,7 +1068,7 @@ double FixStmd::compute_vector(int i)
   else if (i == 3) xx = static_cast<double>(BinMax);          // Upper limit of energy: Emax
   else if (i == 4) xx = static_cast<double>(curbin);          // Last sampled bin
   else if (i == 5) xx = bin;                                  // Bin spacing of energy: \Delta
-  else if (i == 6) xx = f;                                    // f-value
+  else if (i == 6) xx = df;                                   // df-value
   else if (i == 7) xx = Gamma;                                // force scalling factor
 
   return xx;
