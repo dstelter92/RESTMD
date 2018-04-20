@@ -143,7 +143,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 
   // Make dir_output default to local dir
   if (narg == 17)
-    strcpy(dir_output,arg[17]);
+    strcpy(dir_output,arg[16]);
   else
     strcpy(dir_output,"./");
 
