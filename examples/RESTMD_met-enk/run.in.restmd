@@ -1,3 +1,5 @@
+# Must be run with at LEAST 2 procs in 'partition mode'
+
 units           real
 atom_style      full
 
@@ -13,7 +15,7 @@ variable tlo world 220 270
 variable thi world 300 350
 variable rep world 0 1
 variable temp equal 305.0
-variable steps equal 1000000
+variable steps equal 100000
 
 read_data         data.peptide
 
@@ -26,14 +28,17 @@ thermo_style      custom step temp pe etotal enthalpy press
 thermo            50
 
 fix               1 all nvt temp ${temp} ${temp} 100.0 tchain 1
-fix               fxSTMD all stmd ${steps} constant 0.001 0.00002 ${tlo} ${thi} -7500 -5500 12 50000 500000 ${temp} no
+fix               fxSTMD all stmd ${steps} constant_f 0.001 0.00002 ${tlo} ${thi} -8500 -5500 12 50000 500000 ${temp} no
 fix               2 all shake 0.0001 10 0 b 4 6 8 10 12 14 18 a 31
 
 group             peptide type <= 12
-dump              mydump peptide dcd 1000 ${rep}.dcd
-dump_modify       mydump unwrap yes
+#dump              mydump peptide dcd 1000 ${rep}.dcd
+#dump_modify       mydump unwrap yes
 
+# Run in partition mode, but with exchanges OFF until STG2
 temper/stmd       ${steps} 1000 ${temp} fxSTMD 0 12345 off
 
-write_restart     ${rep}/restart.peptide.*
+write_restart     restart.peptide.${rep}.*
 write_data        data.peptide.${rep}
+
+quit

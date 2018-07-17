@@ -29,7 +29,7 @@ thermo_style      custom step temp pe etotal enthalpy press
 thermo            50
 
 fix               1 all nvt temp ${temp} ${temp} 100.0 tchain 1
-fix               fxSTMD all stmd ${steps} constant 0.001 0.00002 ${tlo} ${thi} -7500 -5500 12 10000 500000 ${temp} yes
+fix               fxSTMD all stmd ${steps} constant_f 0.001 0.00002 ${tlo} ${thi} -7500 -5500 12 10000 500000 ${temp} yes
 fix               2 all shake 0.0001 10 0 b 4 6 8 10 12 14 18 a 31
 
 group             peptide type <= 12
@@ -38,5 +38,5 @@ dump_modify       mydump unwrap yes
 
 temper/stmd       ${steps} 1000 ${temp} fxSTMD 0 12345 on ${walker}
 
-write_restart     ${rep}/restart.peptide.*
+write_restart     restart.peptide.${rep}.*
 write_data        data.peptide.${rep}
