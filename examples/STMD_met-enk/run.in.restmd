@@ -37,5 +37,5 @@ dump_modify       mydump unwrap yes
 
 run               ${steps}
 
-write_restart     ${rep}/restart.peptide.*
+write_restart     restart.peptide.*
 write_data        data.peptide.${rep}
