@@ -1,0 +1,113 @@
+LAMMPS (11 May 2018)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (../comm.cpp:87)
+  using 1 OpenMP thread(s) per MPI task
+units           real
+atom_style      full
+
+pair_style        lj/charmm/coul/long 8.0 10.0 10.0
+bond_style        harmonic
+angle_style       charmm
+dihedral_style    charmm
+improper_style    harmonic
+kspace_style      pppm 0.0001
+
+# Define variables
+variable tlo equal 150
+variable thi equal 350
+variable rep equal 0
+variable temp equal 305.0
+variable steps equal 1000000
+
+read_data         data.peptide
+  orthogonal box = (36.8402 41.0137 29.7681) to (64.2116 68.3851 57.1395)
+  1 by 2 by 2 MPI processor grid
+  reading atoms ...
+  2004 atoms
+  reading velocities ...
+  2004 velocities
+  scanning bonds ...
+  3 = max bonds/atom
+  scanning angles ...
+  6 = max angles/atom
+  scanning dihedrals ...
+  14 = max dihedrals/atom
+  scanning impropers ...
+  1 = max impropers/atom
+  reading bonds ...
+  1365 bonds
+  reading angles ...
+  786 angles
+  reading dihedrals ...
+  207 dihedrals
+  reading impropers ...
+  12 impropers
+  4 = max # of 1-2 neighbors
+  7 = max # of 1-3 neighbors
+  14 = max # of 1-4 neighbors
+  18 = max # of special neighbors
+#read_data         data.peptide.${rep}
+
+neighbor          2.0 bin
+neigh_modify      delay 5
+
+timestep          2.0
+
+thermo_style      custom step temp pe etotal enthalpy press
+thermo            50
+
+fix               1 all nvt temp ${temp} ${temp} 100.0 tchain 1
+fix               1 all nvt temp 305 ${temp} 100.0 tchain 1
+fix               1 all nvt temp 305 305 100.0 tchain 1
+fix	              fxSTMD all stmd ${steps} constant_f 0.001 0.00002 ${tlo} ${thi} -8500 -5500 12 50000 500000 ${temp} no
+fix	              fxSTMD all stmd 1000000 constant_f 0.001 0.00002 ${tlo} ${thi} -8500 -5500 12 50000 500000 ${temp} no
+fix	              fxSTMD all stmd 1000000 constant_f 0.001 0.00002 150 ${thi} -8500 -5500 12 50000 500000 ${temp} no
+fix	              fxSTMD all stmd 1000000 constant_f 0.001 0.00002 150 350 -8500 -5500 12 50000 500000 ${temp} no
+fix	              fxSTMD all stmd 1000000 constant_f 0.001 0.00002 150 350 -8500 -5500 12 50000 500000 305 no
+fix               2 all shake 0.0001 10 0 b 4 6 8 10 12 14 18 a 31
+  19 = # of size 2 clusters
+  6 = # of size 3 clusters
+  3 = # of size 4 clusters
+  640 = # of frozen angles
+
+group             peptide type <= 12
+84 atoms in group peptide
+dump              mydump peptide dcd 1000 ${rep}.dcd
+dump              mydump peptide dcd 1000 0.dcd
+dump_modify       mydump pad 8
+dump_modify       mydump unwrap yes
+
+run               ${steps}
+run               1000000
+PPPM initialization ...
+  using 12-bit tables for long-range coulomb (../kspace.cpp:321)
+  G vector (1/distance) = 0.268725
+  grid = 15 15 15
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.0228209
+  estimated relative force accuracy = 6.87243e-05
+  using double precision FFTs
+  3d grid and FFT values/proc = 4312 960
+STMD: STAGE= 1, #bins= 251  binsize= 12.000000
+  Emin= -8500.000000 Emax= -5500.000000 f-value= 1.024290 df= 0.001000
+  f-tolerances: STG3= 1.000480 STG4= 1.000048
+Neighbor list info ...
+  update every 1 steps, delay 5 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 12
+  ghost atom cutoff = 12
+  binsize = 6, bins = 5 5 5
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/charmm/coul/long, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton
+      stencil: half/bin/3d/newton
+      bin: standard
+  STMD DIG: istep= 0  TSC1= 50000 Tlow= 1.147104
+Per MPI rank memory allocation (min/avg/max) = 15.71 | 15.9 | 16.1 Mbytes
+Step Temp PotEng TotEng Enthalpy Press 
+       0    303.06656   -6135.9847   -4916.7176   -4142.6592    2588.2629 
+      50    290.59402   -6017.9277   -4848.8389   -4461.0573    1296.6474 
+     100    312.22832   -5952.8695   -4696.7438   -3921.0777    2593.6385 
+     150    311.15712   -5822.4971   -4570.6809   -3843.7683    2430.6189 
+     200     314.7213   -5777.0156   -4510.8603   -3924.6803    1960.0432 
+     250    322.39359   -5830
