@@ -15,7 +15,7 @@ variable tlo world 220 270
 variable thi world 300 350
 variable rep world 0 1
 variable temp equal 305.0
-variable steps equal 100000
+variable steps equal 1000000
 
 read_data         data.peptide
 
