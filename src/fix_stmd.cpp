@@ -127,9 +127,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   TSC1   = atoi(arg[12]);
   TSC2   = atoi(arg[13]);
 
-  // This value should be consistent with target temperature of thermostat fix
-  ST     = atof(arg[14]);
-  
   // 0 for new run, 1 for restart
   OREST = -1;
   if (strcmp(arg[15],"yes") == 0)
@@ -163,7 +160,63 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   BinMin = round(Emin / bin);
   BinMax = round(Emax / bin);
   N = BinMax - BinMin + 1;
-  
+
+  // find current thermostating fix
+  int n = strlen(arg[14])+1;
+  id_nh = new char[n];
+  strcpy(id_nh,arg[14]);
+
+  // check if fix exists
+  int ifix = modify->find_fix(id_nh);
+  if (ifix < 0)
+    error->all(FLERR,"Fix id for nvt or npt fix does not exist");
+  Fix *nh = modify->fix[ifix];
+
+  // reate new compute temp and press styles
+  // id = fix-ID + temp
+  n = strlen(id) + 6;
+  id_temp = new char[n];
+  strcpy(id_temp,id);
+  strcat(id_temp,"_temp");
+
+  char **newarg = new char*[3];
+  newarg[0] = id_temp;
+  newarg[1] = (char *) "all";
+  newarg[2] = (char *) "temp";
+  modify->add_compute(3,newarg);
+  delete [] newarg;
+
+  // do same for pressure/stmd
+  // id = fix-ID + press
+  n = strlen(id) + 6;
+  id_press = new char[n];
+  strcpy(id_press,id);
+  strcat(id_press,"_press");
+
+  newarg = new char*[5];
+  newarg[0] = id_press;
+  newarg[1] = (char *) "all";
+  newarg[2] = (char *) "PRESSURE/STMD";
+  newarg[3] = id_temp;
+  newarg[4] = id;
+  modify->add_compute(5,newarg);
+  delete [] newarg;
+
+  // check if barostat exists
+  pressflag = 0;
+  int *p_flag = (int *)nh->extract("p_flag",ifix);
+  if ((p_flag == NULL) || (ifix != 1) || (p_flag[0] == 0)
+      || (p_flag[1] == 0) || (p_flag[2] == 0)) {
+    pressflag = 0;
+  } else if ((p_flag[0] == 1) && (p_flag[1] == 1) && (p_flag[2] == 1) && (ifix == 1)) {
+    pressflag = 1;
+    char *modargs[2];
+    modargs[0] = (char*) "press";
+    modargs[1] = id_press;
+    nh->modify_param(2,modargs);
+  }
+
+
   size_vector = 8;
   size_array_cols = 4;
   size_array_rows = N;
@@ -180,6 +233,11 @@ FixStmd::~FixStmd()
   memory->destroy(Htot);
   memory->destroy(PROH);
   memory->destroy(Prob);
+  modify->delete_compute(id_temp);
+  modify->delete_compute(id_press);
+  delete [] id_nh;
+  delete [] id_temp;
+  delete [] id_press;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -256,6 +314,50 @@ void FixStmd::init()
     }
   }
 
+  // set compute ptrs
+  int icompute = modify->find_compute(id_temp);
+  if (icompute < 0)
+    error->all(FLERR,"Temperature compute ID for fix grem does not exist");
+  temperature = modify->compute[icompute];
+
+  // check if thermostat fix exists
+  int ifix = modify->find_fix(id_nh);
+  if (ifix < 0)
+    error->all(FLERR,"Fix id for nvt or npt fix does not exist");
+  Fix *nh = modify->fix[ifix];
+
+  // check for temperature ramp
+  double *t_start = (double *)nh->extract("t_start",ifix);
+  double *t_stop = (double *)nh->extract("t_stop",ifix);
+  if ((t_start != NULL) && (t_stop != NULL) && (ifix == 0)) {
+    ST = *t_start;
+    if (*t_start != *t_stop)
+      error->all(FLERR,"Thermostat temperature ramp not allowed");
+  } else
+    error->all(FLERR,"Problem extracting target temperature from fix nvt or npt");
+
+  // check for supported barostat settings
+  pressref = 0.0;
+  if (pressflag) {
+    int *p_flag = (int *)nh->extract("p_flag",ifix);
+    double *p_start = (double *) nh->extract("p_start",ifix);
+    double *p_stop = (double *) nh->extract("p_stop",ifix);
+    if ((p_flag != NULL) && (p_start != NULL) && (p_stop != NULL)
+        && (ifix == 1)) {
+      ifix = 0;
+      pressref = p_start[0];
+      if ((p_start[0] != p_stop[0]) || (p_flag[0] != 1)) ++ ifix;
+      if ((p_start[1] != p_stop[1]) || (p_flag[0] != 1)) ++ ifix;
+      if ((p_start[2] != p_stop[2]) || (p_flag[0] != 1)) ++ ifix;
+      if ((p_start[0] != p_start[1]) || (p_start[1] != p_start[2])) ++ifix;
+      if ((p_flag[3] != 0) || (p_flag[4] != 0) || (p_flag[5] != 0)) ++ifix;
+      if (ifix > 0)
+        error->all(FLERR,"Unsupported pressure settings in fix npt");
+    } else
+      error->all(FLERR,"Problem extracting target pressure from fix npt");
+  }
+  
+  // Defaults
   CutTmin  = 50.0;
   CutTmax  = 50.0;
   HCKtol   = 0.2;
@@ -332,7 +434,11 @@ void FixStmd::init()
 
     pe_compute_id = modify->ncompute - 1;
   }
+
+  if (domain->triclinic)
+    error->all(FLERR,"Triclinic cells are not supported");
   
+
   if (OREST) { // Read oREST.d into variables
     if (comm->me == 0) {
       int k = 0;
@@ -446,7 +552,10 @@ void FixStmd::post_force(int vflag)
   int nlocal = atom->nlocal;
 
   // Get current value of potential energy from compute/pe
-  double potE = modify->compute[pe_compute_id]->compute_scalar();
+  double tmp_pe = modify->compute[pe_compute_id]->compute_scalar();
+  double tmp_vol = domain->xprd * domain->yprd * domain->zprd;
+
+  double potE = tmp_pe + (pressref*tmp_vol/(force->nktv2p));
 
   // Check if potE is outside of bounds before continuing
   if ((potE < Emin) || (potE > Emax))

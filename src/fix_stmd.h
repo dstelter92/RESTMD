@@ -53,6 +53,7 @@ class FixStmd : public Fix {
   double f;                 // current f-value
   double ST;                // kinetic temperature
   double T1, T2;            // scaled temperature cutoffs
+  int pressflag;
 
  private:
   int RSTFRQ;               // restart and print frequency
@@ -69,6 +70,7 @@ class FixStmd : public Fix {
 
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
+  int pressref;
 
   double bin;               // binsize
   double Emin,Emax;         // energy range
@@ -101,6 +103,10 @@ class FixStmd : public Fix {
   void TCHK();              // Translation of stmd.f::stmdTCHK()
   void HCHK();              // Translation of stmd.f::stmdHCHK()
   void MAIN(int, double);   // Translation of stmd.f::stmdMAIN()
+
+ protected:
+  char *id_temp,*id_press,*id_nh;
+  class Compute *temperature,*pressure;
 
 };
 
