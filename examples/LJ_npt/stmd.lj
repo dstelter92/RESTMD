@@ -1,0 +1,32 @@
+# 3d Lennard-Jones; density = 0.95
+
+units		lj
+atom_style	atomic
+
+pair_style	lj/sf 2.3
+read_data './lj_start.data'
+pair_coeff	1 1 1.0 1.0 2.3
+
+variable TH equal 1.3
+variable TL equal 0.8
+variable T0 equal ${TH}
+variable bin index 75
+variable steps equal 10000000
+
+neighbor	0.3 bin
+neigh_modify	every 5 delay 0 check no
+
+timestep 0.01
+velocity all create ${T0} 29384 rot yes dist gaussian
+
+fix		fxNH all npt temp ${T0} ${T0} 1.0 iso 0.001 0.001 10.0
+fix   stmd all stmd ${steps} constant_df 0.001 0.00002 ${TL} ${TH} -2000 40000 ${bin} 1000 2000 fxNH no ./out/
+
+dump  d1 all xyz 500 equil.xyz
+
+thermo_style custom step temp f_stmd f_stmd[7] pe enthalpy press vol spcpu
+thermo		50
+thermo_modify press stmd_press
+
+run		${steps}
+write_data after-stmd.data
