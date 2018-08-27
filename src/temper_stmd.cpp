@@ -59,6 +59,7 @@ TemperStmd::~TemperStmd()
   delete [] temp2world;
   delete [] world2temp;
   delete [] world2root;
+  delete [] id_nh;
 }
 
 /* ----------------------------------------------------------------------
@@ -76,15 +77,32 @@ void TemperStmd::command(int narg, char **arg )
 
   int nsteps = force->inumeric(FLERR,arg[0]);
   nevery = force->inumeric(FLERR,arg[1]);
-  double temp = force->numeric(FLERR,arg[2]);
-
-  for (whichfix = 0; whichfix < modify->nfix; whichfix++)
-    if (strcmp(arg[3],modify->fix[whichfix]->id) == 0) break;
-  if (whichfix == modify->nfix)
-    error->universe_all(FLERR,"Tempering fix ID is not defined");
 
   // Set pointer to stmd fix
+  for (whichfix = 0; whichfix < modify->nfix; whichfix++)
+    if (strcmp(arg[2],modify->fix[whichfix]->id) == 0) break;
+  if (whichfix == modify->nfix)
+    error->universe_all(FLERR,"Tempering fix ID is not defined");
   fix_stmd = (FixStmd*)(modify->fix[whichfix]);
+
+  // Check for nh fix
+  int n = strlen(arg[3])+1;
+  id_nh = new char[n];
+  strcpy(id_nh,arg[3]);
+  int ifix = modify->find_fix(id_nh);
+  if (ifix < 0)
+    error->all(FLERR,"Fix id for nvt or npt fix does not exist");
+  Fix *nh = modify->fix[ifix];
+
+  // find out if npt or nvt
+  double pressref = 0;
+  int pressflag = fix_stmd->pressflag;
+  if (pressflag) {
+    double *p_start = (double *) nh->extract("p_start",ifix);
+    pressref = p_start[0];
+  }
+
+  double *temp = (double *) nh->extract("t_start",ifix);
 
   seed_swap = force->inumeric(FLERR,arg[4]);
   seed_boltz = force->inumeric(FLERR,arg[5]);
@@ -97,10 +115,6 @@ void TemperStmd::command(int narg, char **arg )
     EX_flag = 1;
   else
     error->all(FLERR,"RESTMD: illegal exchange option");
-
-  if (fix_stmd->ST != temp)
-    error->universe_all(FLERR,"Kinetic temperatures not "
-        "the same, use homogeneous temperature control");
 
   my_set_temp = universe->iworld;
   if (narg == 8) my_set_temp = force->inumeric(FLERR,arg[7]);
@@ -197,7 +211,7 @@ void TemperStmd::command(int narg, char **arg )
 
   // setup tempering runs
   int which,partner,swap,partner_set_temp,partner_world;
-  double pe,pe_partner,boltz_factor;
+  double pe,pe_partner,volume,boltz_factor;
 
   int stg_flag = 0;
   int stg_flag_me = 0;
@@ -238,9 +252,11 @@ void TemperStmd::command(int narg, char **arg )
     // run for nevery timesteps
     update->integrate->run(nevery);
 
-    // compute PE
+
+    // compute PE/enthalpy
     // notify compute it will be called at next swap
-    pe = pe_compute->compute_scalar();
+    volume = domain->xprd * domain->yprd * domain->zprd;
+    pe = pe_compute->compute_scalar() + (pressref * volume);
     pe_compute->addstep(update->ntimestep + nevery);
 
     // Get fix stmd information

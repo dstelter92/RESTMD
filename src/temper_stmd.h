@@ -58,6 +58,10 @@ class TemperStmd : protected Pointers {
   void print_status();
 
   class FixStmd * fix_stmd;
+
+ protected:
+  char *id_nh;
+  int pressflag;
 };
 
 }
