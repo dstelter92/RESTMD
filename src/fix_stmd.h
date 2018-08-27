@@ -70,7 +70,7 @@ class FixStmd : public Fix {
 
   int stmd_logfile,stmd_debug;
   int pe_compute_id;
-  int pressref;
+  double pressref;
 
   double bin;               // binsize
   double Emin,Emax;         // energy range
