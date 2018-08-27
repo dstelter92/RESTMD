@@ -618,8 +618,9 @@ void FixStmd::write_temperature()
 {
   int m = (update->ntimestep) % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
+    fprintf(fp_wtnm,"### STMD Step %i: bin E Ts(E)\n",update->ntimestep);
     for (int i=0; i<N; i++) 
-      fprintf(fp_wtnm,"%i %f %f %f %i\n", i,(i*bin)+Emin,Y2[i]*ST,Y2[i],totCi);
+      fprintf(fp_wtnm,"%i %f %f\n", i,(i*bin)+Emin,Y2[i]*ST);
     fprintf(fp_wtnm,"\n\n");
   }
 }
@@ -949,8 +950,9 @@ void FixStmd::MAIN(int istep, double potE)
   // Hist Output
   int o = istep % RSTFRQ;
   if ((o == 0) && (comm->me == 0)) {
-    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i %f %i %i %f"
-        "\n",i,(i*bin)+Emin,Hist[i],Htot[i],Y2[i],CountH,totCi,f);
+    fprintf(fp_whnm,"### STMD Step=%d: bin E hist tot_hist\n",istep);
+    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i"
+        "\n",i,(i*bin)+Emin,Hist[i],Htot[i]);
     fprintf(fp_whnm,"\n\n");
   }
   
@@ -1020,6 +1022,7 @@ void FixStmd::MAIN(int istep, double potE)
 
       // Production run: Hist Output STMD
       if ((o == 0) && (comm->me == 0)) {
+      fprintf(fp_whpnm,"### STMD Step=%d: bin E phist ptot_hist\n",istep);
         for (int i=0; i<N; i++)
           fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
               Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
