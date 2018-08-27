@@ -148,8 +148,9 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Y1 = Y2 = Prob = NULL;
   Hist = Htot = PROH = NULL;
 
-  stmd_logfile = stmd_debug = 0;
+  stmd_logfile = stmd_debug = stmd_screen = 0;
   if ((comm->me == 0) && (logfile)) stmd_logfile = 1;
+  if ((comm->me == 0) && (screen)) stmd_screen = 1;
 
   // DEBUG FLAG
   //stmd_debug = 1;
@@ -305,10 +306,10 @@ void FixStmd::init()
       // Check if file exists
       fp_orest = fopen(filename,"r");
       if (!fp_orest) {
-        if (stmd_logfile) {
-          fprintf(screen,"Restart file: oREST.%s.d is empty\n",walker);
+        if (stmd_logfile)
           fprintf(logfile,"Restart file: oREST.%s.d is empty\n",walker);
-        }
+        if (stmd_screen)
+          fprintf(screen,"Restart file: oREST.%s.d is empty\n",walker);
         error->one(FLERR,"STMD: Restart file does not exist\n");
       }
     }
@@ -459,10 +460,10 @@ void FixStmd::init()
       int sz = file.tellg();
       file.seekg(0,file.beg);
       if (sz < (nsize*sizeof(double))) {
-        if (stmd_logfile) {
-          fprintf(screen,"Restart file: oREST.%s.d is an invalid format\n",walker);
+        if (stmd_logfile)
           fprintf(logfile,"Restart file: oREST.%s.d is an invalid format\n",walker);
-        }
+        if (stmd_screen)
+          fprintf(screen,"Restart file: oREST.%s.d is an invalid format\n",walker);
         error->one(FLERR,"STMD: Restart file is empty/invalid\n");
       }
 
@@ -497,18 +498,18 @@ void FixStmd::init()
     df = log(f) * 0.5 / bin;
   }
 
-  if ((stmd_logfile) && (nworlds > 1)) {
-    fprintf(logfile,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
-    fprintf(screen,"RESTMD: #replicas= %i  walker= %i\n",nworlds,iworld);
-    }
-  if (stmd_logfile) {
-    fprintf(logfile,"STMD: STAGE= %i, #bins= %i  binsize= %f\n",STG,N,bin); 
-    fprintf(screen,"STMD: STAGE= %i, #bins= %i  binsize= %f\n",STG,N,bin);
-    fprintf(logfile,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
-    fprintf(screen,"  Emin= %f Emax= %f f-value= %f df= %f\n",Emin,Emax,f,df); 
-    fprintf(logfile,"  f-tolerances: STG3= %f STG4= %f\n",pfinFval,finFval);
-    fprintf(screen,"  f-tolerances: STG3= %f STG4= %f\n",pfinFval,finFval);
-  }
+  if ((stmd_logfile) && (nworlds > 1))
+    fprintf(logfile,"RESTMD: #replicas=%i  walker=%i\n",nworlds,iworld);
+  if ((stmd_screen) && (nworlds > 1))
+    fprintf(screen,"RESTMD: #replicas=%i  walker=%i\n",nworlds,iworld);
+  if (stmd_logfile)
+    fprintf(logfile,"STMD: STAGE=%i, #bins=%i  binsize=%f\n",STG,N,bin); 
+    fprintf(logfile,"  Emin=%f Emax=%f f-value=%f df=%f\n",Emin,Emax,f,df); 
+    fprintf(logfile,"  f-tolerances: STG3=%f STG4=%f\n",pfinFval,finFval);
+  if (stmd_screen)
+    fprintf(screen,"STMD: STAGE=%i, #bins=%i  binsize=%f\n",STG,N,bin);
+    fprintf(screen,"  Emin=%f Emax=%f f-value=%f df=%f\n",Emin,Emax,f,df); 
+    fprintf(screen,"  f-tolerances: STG3=%f STG4=%f\n",pfinFval,finFval);
 
   // Write values of all paramters to logfile
   if ((stmd_logfile) && (stmd_debug)) {
@@ -763,10 +764,10 @@ int FixStmd::Yval(double potE)
   int i = curbin;
 
   if ((i<1) || (i>N-1)) {
-    if ((stmd_logfile) && (comm->me == 0)) {
-      fprintf(screen,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
-      fprintf(logfile,"Error in Yval: potE= %f  bin= %f  i= %i\n",potE,bin,i);
-    }
+    if ((stmd_logfile) && (comm->me == 0))
+      fprintf(logfile,"Error in Yval: pe=%f  bin=%f  i=%i\n",potE,bin,i);
+    if ((stmd_screen) && (comm->me == 0))
+      fprintf(screen,"Error in Yval: pe=%f  bin=%f  i=%i\n",potE,bin,i);
     error->all(FLERR,"STMD: Histogram index out of range");
   }
 
@@ -1136,10 +1137,10 @@ void FixStmd::MAIN(int istep, double potE)
   if (STG == 1) {
     int m = istep % TSC1;
     if (m == 0) {
-      if (stmd_logfile) {
-        fprintf(logfile,"  STMD DIG: istep= %i  TSC1= %i Tlow= %f\n",istep,TSC1,T);
-        fprintf(screen,"  STMD DIG: istep= %i  TSC1= %i Tlow= %f\n",istep,TSC1,T);
-      }
+      if (stmd_logfile)
+        fprintf(logfile,"  STMD DIG: istep=%i  TSC1=%i Tlow=%f\n",istep,TSC1,T);
+      if (stmd_screen)
+        fprintf(screen,"  STMD DIG: istep=%i  TSC1=%i Tlow=%f\n",istep,TSC1,T);
 
       dig();
       TCHK();

@@ -68,7 +68,7 @@ class FixStmd : public Fix {
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int curbin;               // current sampled bin
 
-  int stmd_logfile,stmd_debug;
+  int stmd_logfile,stmd_debug,stmd_screen;
   int pe_compute_id;
   double pressref;
 
