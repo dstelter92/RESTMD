@@ -502,14 +502,16 @@ void FixStmd::init()
     fprintf(logfile,"RESTMD: #replicas=%i  walker=%i\n",nworlds,iworld);
   if ((stmd_screen) && (nworlds > 1))
     fprintf(screen,"RESTMD: #replicas=%i  walker=%i\n",nworlds,iworld);
-  if (stmd_logfile)
+  if (stmd_logfile) {
     fprintf(logfile,"STMD: STAGE=%i, #bins=%i  binsize=%f\n",STG,N,bin); 
     fprintf(logfile,"  Emin=%f Emax=%f f-value=%f df=%f\n",Emin,Emax,f,df); 
     fprintf(logfile,"  f-tolerances: STG3=%f STG4=%f\n",pfinFval,finFval);
-  if (stmd_screen)
+  }
+  if (stmd_screen) {
     fprintf(screen,"STMD: STAGE=%i, #bins=%i  binsize=%f\n",STG,N,bin);
     fprintf(screen,"  Emin=%f Emax=%f f-value=%f df=%f\n",Emin,Emax,f,df); 
     fprintf(screen,"  f-tolerances: STG3=%f STG4=%f\n",pfinFval,finFval);
+  }
 
   // Write values of all paramters to logfile
   if ((stmd_logfile) && (stmd_debug)) {
