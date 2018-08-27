@@ -30,8 +30,8 @@
     
 ------------------------------------------------------------------------- */
 
-#include "string.h"
-#include "stdlib.h"
+#include <cstring>
+#include <cstdlib>
 #include "fix_stmd.h"
 #include "atom.h"
 #include "update.h"

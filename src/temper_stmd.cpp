@@ -17,9 +17,9 @@
    Modified for RESTMD by David Stelter (BU) and Chris Knight (ANL)
 ------------------------------------------------------------------------- */
 
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include "temper_stmd.h"
 #include "universe.h"
 #include "domain.h"
