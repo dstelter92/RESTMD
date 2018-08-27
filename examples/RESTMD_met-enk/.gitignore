@@ -1,0 +1,7 @@
+data.peptide.*
+restart.peptide.*
+log.lammps
+log.lammps.0
+log.lammps.1
+screen.*
+*.dcd
