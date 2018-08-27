@@ -36,9 +36,9 @@ group             peptide type <= 12
 #dump_modify       mydump unwrap yes
 
 # Run in partition mode, but with exchanges OFF until STG2
-temper/stmd       ${steps} 1000 ${temp} fxSTMD 0 12345 off
+temper/stmd       ${steps} 1000 fxSTMD fxnvt 0 12345 off
 
-write_restart     restart.peptide.${rep}.*
-write_data        data.peptide.${rep}
+#write_restart     restart.peptide.${rep}.*
+#write_data        data.peptide.${rep}
 
 quit
