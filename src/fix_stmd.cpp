@@ -438,7 +438,6 @@ void FixStmd::init()
 
   if (domain->triclinic)
     error->all(FLERR,"Triclinic cells are not supported");
-  
 
   if (OREST) { // Read oREST.d into variables
     if (comm->me == 0) {
@@ -496,6 +495,7 @@ void FixStmd::init()
       memory->destroy(list);
     }
     df = log(f) * 0.5 / bin;
+    OREST = 0;
   }
 
   if ((stmd_logfile) && (nworlds > 1))
@@ -618,9 +618,10 @@ double FixStmd::memory_usage()
 
 void FixStmd::write_temperature()
 {
-  int m = (update->ntimestep) % RSTFRQ;
+  int istep = update->ntimestep;
+  int m = istep % RSTFRQ;
   if ((m == 0) && (comm->me == 0)) {
-    fprintf(fp_wtnm,"### STMD Step %i: bin E Ts(E)\n",update->ntimestep);
+    fprintf(fp_wtnm,"### STMD Step %i: bin E Ts(E)\n",istep);
     for (int i=0; i<N; i++) 
       fprintf(fp_wtnm,"%i %f %f\n", i,(i*bin)+Emin,Y2[i]*ST);
     fprintf(fp_wtnm,"\n\n");
