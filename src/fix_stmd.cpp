@@ -64,11 +64,18 @@ enum{NONE,CONSTANT,EQUAL,ATOM};
 FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   Fix(lmp, narg, arg)
 {
-  if (narg < 16 || narg > 17) error->all(FLERR,"Illegal fix stmd command");
+  if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
+
+  // DEBUG FLAG
+  //stmd_debug = 1;
 
   scalar_flag = 1;
   vector_flag = 1;
   array_flag = 1;
+  
+  size_vector = 8;
+  size_array_cols = 4;
+  size_array_rows = N;
 
   extscalar = 0;
   extvector = 0;
@@ -108,8 +115,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,"STMD: initial deltaF value too large");
   
   // Delta-f tolerances
-  //dFval3 = 0.00010;
-  dFval3 = atof(arg[6]); // Delta F, final
+  dFval3 = 0.000020;
   if (dFval3 < 0.00001)
     error->all(FLERR,"STMD: final deltaF value too small");
   dFval4 = dFval3 / 10.;
@@ -117,21 +123,32 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   finFval = exp(dFval4 * 2 * bin);
 
   // Used once, controlled by restart file
-  TL     = atof(arg[7]);
-  TH     = atof(arg[8]);
+  TL     = atof(arg[6]);
+  TH     = atof(arg[7]);
 
   // Controlled by input file, not restart file
-  Emin   = atof(arg[9]);
-  Emax   = atof(arg[10]);
-  bin    = atof(arg[11]);
-  TSC1   = atoi(arg[12]);
-  TSC2   = atoi(arg[13]);
+  Emin   = atof(arg[8]);
+  Emax   = atof(arg[9]);
+  bin    = atof(arg[10]);
+  TSC1   = atoi(arg[11]);
+  TSC2   = atoi(arg[12]);
+
+  // find current thermostating fix
+  int n = strlen(arg[13])+1;
+  id_nh = new char[n];
+  strcpy(id_nh,arg[13]);
+  
+  // check if fix exists
+  int ifix = modify->find_fix(id_nh);
+  if (ifix < 0)
+    error->all(FLERR,"Fix id for nvt or npt fix does not exist");
+  Fix *nh = modify->fix[ifix];
 
   // 0 for new run, 1 for restart
   OREST = -1;
-  if (strcmp(arg[15],"yes") == 0)
+  if (strcmp(arg[14],"yes") == 0)
     OREST = 1;
-  else if (strcmp(arg[15],"no") == 0)
+  else if (strcmp(arg[14],"no") == 0)
     OREST = 0;
   else 
     error->all(FLERR,"STMD: invalid restart option");
@@ -139,22 +156,21 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     error->all(FLERR,"STMD: invalid restart option");
 
   // Make dir_output default to local dir
-  if (narg == 17)
-    strcpy(dir_output,arg[16]);
+  if (narg == 16)
+    strcpy(dir_output,arg[15]);
   else
     strcpy(dir_output,"./");
-
   
+  // Init arrays
   Y1 = Y2 = Prob = NULL;
   Hist = Htot = PROH = NULL;
 
+  // Setup communication flags
   stmd_logfile = stmd_debug = stmd_screen = 0;
   if ((comm->me == 0) && (logfile)) stmd_logfile = 1;
   if ((comm->me == 0) && (screen)) stmd_screen = 1;
 
-  // DEBUG FLAG
-  //stmd_debug = 1;
-
+  // Init file pointers
   fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
   
   // Energy bin setup
@@ -162,18 +178,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   BinMax = round(Emax / bin);
   N = BinMax - BinMin + 1;
 
-  // find current thermostating fix
-  int n = strlen(arg[14])+1;
-  id_nh = new char[n];
-  strcpy(id_nh,arg[14]);
-
-  // check if fix exists
-  int ifix = modify->find_fix(id_nh);
-  if (ifix < 0)
-    error->all(FLERR,"Fix id for nvt or npt fix does not exist");
-  Fix *nh = modify->fix[ifix];
-
-  // reate new compute temp and press styles
+  // ceate new compute temp style
   // id = fix-ID + temp
   n = strlen(id) + 6;
   id_temp = new char[n];
@@ -216,12 +221,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     modargs[1] = id_press;
     nh->modify_param(2,modargs);
   }
-
-
-  size_vector = 8;
-  size_array_cols = 4;
-  size_array_rows = N;
-
 }
 
 /* ---------------------------------------------------------------------- */
@@ -497,7 +496,16 @@ void FixStmd::init()
     df = log(f) * 0.5 / bin;
     OREST = 0;
   }
+}
 
+/* ---------------------------------------------------------------------- */
+
+void FixStmd::setup(int vflag)
+{
+  if (strstr(update->integrate_style,"verlet")) {
+    post_force(vflag);
+
+  // Write info to screen/log
   if ((stmd_logfile) && (nworlds > 1))
     fprintf(logfile,"RESTMD: #replicas=%i  walker=%i\n",nworlds,iworld);
   if ((stmd_screen) && (nworlds > 1))
@@ -513,25 +521,13 @@ void FixStmd::init()
     fprintf(screen,"  f-tolerances: STG3=%f STG4=%f\n",pfinFval,finFval);
   }
 
-  // Write values of all paramters to logfile
+  // Write current Ts estimate to logfile
   if ((stmd_logfile) && (stmd_debug)) {
-    //fprintf(logfile,"STMD Yold(Y1)= ");
-    //for (int i=0; i<N; i++) fprintf(logfile," %f",Y1[i]);
-    //fprintf(logfile,"\n");
     fprintf(logfile,"STMD Temperature (Y2)= ");
     for (int i=0; i<N; i++) 
       fprintf(logfile," %f",Y2[i]);
     fprintf(logfile,"\n");
   }
-}
-
-/* ---------------------------------------------------------------------- */
-
-void FixStmd::setup(int vflag)
-{
-  if (strstr(update->integrate_style,"verlet")) {
-    post_force(vflag);
-
     // Force computation of energies
     modify->compute[pe_compute_id]->invoked_flag |= INVOKED_SCALAR;
     modify->addstep_compute(update->ntimestep + 1);
