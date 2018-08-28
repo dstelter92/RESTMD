@@ -953,8 +953,8 @@ void FixStmd::MAIN(int istep, double potE)
   int o = istep % RSTFRQ;
   if ((o == 0) && (comm->me == 0)) {
     fprintf(fp_whnm,"### STMD Step=%d: bin E hist tot_hist\n",istep);
-    for (int i=0; i<N; i++) fprintf(fp_whnm,"%i %f %i %i"
-        "\n",i,(i*bin)+Emin,Hist[i],Htot[i]);
+    for (int i=0; i<N; i++) 
+      fprintf(fp_whnm,"%i %f %i %i\n",i,(i*bin)+Emin,Hist[i],Htot[i]);
     fprintf(fp_whnm,"\n\n");
   }
   
