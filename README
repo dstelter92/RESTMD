@@ -11,7 +11,7 @@ TO DO:
 [x] Ensure swaps take place correctly
 [x] Benchmark algorithm, 60nm and 100nm implicit solvent lipid vesicles: http://i.imgur.com/Zx1QBLw.png 
 [x] Clean out input/output for use by others
-[ ] Create example simulations
+[x] Create example simulations
 [ ] Create documentation
 [ ] Prepare for LAMMPS release, last bugchecks!
 
