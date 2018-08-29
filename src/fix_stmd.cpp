@@ -1138,7 +1138,7 @@ void FixStmd::MAIN(int istep, double potE)
   // Run until lowest temperature sampled
   if (STG == 1) {
     int m = istep % TSC1;
-    if (m == 0) {
+    if ((m == 0) && (istep != 0)) {
       if (stmd_logfile)
         fprintf(logfile,"  STMD DIG: istep=%i  TSC1=%i Tlow=%f\n",istep,TSC1,T);
       if (stmd_screen)
