@@ -210,8 +210,9 @@ void TemperStmd::command(int narg, char **arg )
   */
 
   // setup tempering runs
-  int which,partner,swap,partner_set_temp,partner_world;
+  int which,partner,swap,partner_set_temp,partner_world,dim;
   double pe,pe_partner,volume,boltz_factor;
+  double* sampled;
 
   int stg_flag = 0;
   int stg_flag_me = 0;
@@ -254,10 +255,14 @@ void TemperStmd::command(int narg, char **arg )
 
 
     // compute PE/enthalpy
-    // notify compute it will be called at next swap
+    // safest to get it from fix_stmd directly
+    /*
     volume = domain->xprd * domain->yprd * domain->zprd;
     pe = pe_compute->compute_scalar() + (pressref * volume);
     pe_compute->addstep(update->ntimestep + nevery);
+    */
+    sampled = (double *)fix_stmd->extract("sampledE",dim);
+    pe = (*sampled);
 
     // Get fix stmd information
     current_STG = fix_stmd->STG;

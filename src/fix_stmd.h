@@ -45,7 +45,7 @@ class FixStmd : public Fix {
   void write_orest();
   void write_temperature();
 
-  // Public for access by temper_grem
+  // Public for access by temper_stmd
   double * Y2;              // statistical temperature array
   int STG;                  // stage flag
   int N;                    // number of bins

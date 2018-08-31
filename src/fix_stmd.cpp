@@ -1226,5 +1226,8 @@ void *FixStmd::extract(const char *str, int &dim)
   if (strcmp(str,"scale_stmd") == 0) {
     return &Gamma;
   }
+  if (strcmp(str,"sampledE") == 0) {
+    return &sampledE;
+  }
   return NULL;
 }
