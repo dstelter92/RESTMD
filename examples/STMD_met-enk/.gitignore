@@ -1,2 +1,5 @@
 *.dcd
 log.lammps
+W*.d
+
+rename.sh

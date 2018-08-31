@@ -5,3 +5,6 @@ log.lammps.0
 log.lammps.1
 screen.*
 *.dcd
+W*.d
+
+rename.sh
