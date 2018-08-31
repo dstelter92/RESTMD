@@ -83,6 +83,7 @@ class FixStmd : public Fix {
   double initf,df;          // initial-f and delta-f
   double HCKtol;            // histogram tolerance when chk flatness
   double Gamma;             // force scaling factor
+  double sampledE;          // energy/enthalpy sampled
 
   char dir_output[256];     // output directory
   char filename_wtnm[256],filename_whnm[256];

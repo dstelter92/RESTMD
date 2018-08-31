@@ -73,7 +73,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   vector_flag = 1;
   array_flag = 1;
   
-  size_vector = 8;
+  size_vector = 9;
   size_array_cols = 4;
   size_array_rows = N;
 
@@ -554,14 +554,14 @@ void FixStmd::post_force(int vflag)
   double tmp_pe = modify->compute[pe_compute_id]->compute_scalar();
   double tmp_vol = domain->xprd * domain->yprd * domain->zprd;
 
-  double potE = tmp_pe + (pressref*tmp_vol/(force->nktv2p));
+  sampledE = tmp_pe + (pressref*tmp_vol/(force->nktv2p));
 
-  // Check if potE is outside of bounds before continuing
-  if ((potE < Emin) || (potE > Emax))
-    error->all(FLERR,"STMD: Sampled potential energy out of range\n");
+  // Check if sampledE is outside of bounds before continuing
+  if ((sampledE < Emin) || (sampledE > Emax))
+    error->all(FLERR,"STMD: Sampled energy out of range\n");
 
   // Master rank will compute scaling factor and then Bcast to world
-  MAIN(update->ntimestep,potE);
+  MAIN(update->ntimestep,sampledE);
 
   // Gamma(U) = T_0 / T(U)
   MPI_Bcast(&Gamma, 1, MPI_DOUBLE, 0, world); 
@@ -758,16 +758,16 @@ void FixStmd::dig()
 
 /* ---------------------------------------------------------------------- */
 
-int FixStmd::Yval(double potE)
+int FixStmd::Yval(double sampledE)
 {
-  curbin = round(potE / double(bin)) - BinMin + 1;
+  curbin = round(sampledE / double(bin)) - BinMin + 1;
   int i = curbin;
 
   if ((i<1) || (i>N-1)) {
     if ((stmd_logfile) && (comm->me == 0))
-      fprintf(logfile,"Error in Yval: pe=%f  bin=%f  i=%i\n",potE,bin,i);
+      fprintf(logfile,"Error in Yval: pe=%f  bin=%f  i=%i\n",sampledE,bin,i);
     if ((stmd_screen) && (comm->me == 0))
-      fprintf(screen,"Error in Yval: pe=%f  bin=%f  i=%i\n",potE,bin,i);
+      fprintf(screen,"Error in Yval: pe=%f  bin=%f  i=%i\n",sampledE,bin,i);
     error->all(FLERR,"STMD: Histogram index out of range");
   }
 
@@ -778,8 +778,8 @@ int FixStmd::Yval(double potE)
   Y2[i-1] = Y2[i-1] / (1.0 + df * Y2[i-1]);
 
   if (stmd_debug && stmd_logfile) {
-    fprintf(screen,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%f\n",potE,i,df);
-    fprintf(logfile,"  STMD T-UPDATE: potE= %f  sampledbin= %i  df=%f\n",potE,i,df);
+    fprintf(screen,"  STMD T-UPDATE: sampledE= %f  sampledbin= %i  df=%f\n",sampledE,i,df);
+    fprintf(logfile,"  STMD T-UPDATE: sampledE= %f  sampledbin= %i  df=%f\n",sampledE,i,df);
     fprintf(screen,"    bin %d+1: T'= %f  T=%f  delta= %f\n",i,Y2[i+1],Yhi,Y2[i+1]-Yhi);
     fprintf(logfile,"    bin %d+1: T'= %f  T=%f  delta= %f\n",i,Y2[i+1],Yhi,Y2[i+1]-Yhi);
     fprintf(screen,"    bin %d-1: T'=%f  T=%f  delta= %f\n",i,Y2[i-1],Ylo,Y2[i-1]-Ylo);
@@ -796,13 +796,13 @@ int FixStmd::Yval(double potE)
 
 /* ---------------------------------------------------------------------- */
 
-void FixStmd::GammaE(double potE, int indx)
+void FixStmd::GammaE(double sampledE, int indx)
 {
   const int i  = indx;
   const int im = indx - 1;
   const int ip = indx + 1;
 
-  const double e = potE - double( round(potE / double(bin)) * bin );
+  const double e = sampledE - double( round(sampledE / double(bin)) * bin );
 
   //double T;  // made this public to share with RESTMD
   if (e > 0.0) {
@@ -909,7 +909,7 @@ void FixStmd::HCHK()
 
 /* ---------------------------------------------------------------------- */
 
-void FixStmd::MAIN(int istep, double potE)
+void FixStmd::MAIN(int istep, double sampledE)
 {
   Count = istep;
   totCi++;
@@ -924,10 +924,10 @@ void FixStmd::MAIN(int istep, double potE)
   }
 
   // Statistical Temperature Update
-  int stmdi = Yval(potE);
+  int stmdi = Yval(sampledE);
 
   // Gamma Update
-  GammaE(potE,stmdi);
+  GammaE(sampledE,stmdi);
 
   if ((stmd_logfile) && (stmd_debug)) {
     fprintf(logfile,"  STMD: totCi= %i Gamma= %f Hist[%i]= %i "
@@ -1182,6 +1182,7 @@ double FixStmd::compute_vector(int i)
   else if (i == 5) xx = bin;                                  // Bin spacing of energy: \Delta
   else if (i == 6) xx = df;                                   // df-value
   else if (i == 7) xx = Gamma;                                // force scalling factor
+  else if (i == 8) xx = sampledE;                             // Energy/Enthalpy sampled in curbin
 
   return xx;
 }
