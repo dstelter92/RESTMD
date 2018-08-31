@@ -13,7 +13,7 @@ variable T0 equal ${TH}
 variable P equal 0.02
 variable enth equal pe+(${P}*vol/atoms)
 variable bin index 50
-variable steps equal 50000000
+variable steps equal 1000
 
 neighbor	0.3 bin
 neigh_modify	every 5 delay 0 check no

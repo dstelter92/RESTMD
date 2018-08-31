@@ -3,5 +3,7 @@ STMD_out/WT.0.d
 STMD_out/WH.0.d
 STMD_out/WHP.0.d
 STMD_out/oREST.0.d
+equil.xyz
+after-stmd.data
 
 rename.sh
