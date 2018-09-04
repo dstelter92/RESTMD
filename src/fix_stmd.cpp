@@ -73,10 +73,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   vector_flag = 1;
   array_flag = 1;
   
-  size_vector = 9;
-  size_array_cols = 4;
-  size_array_rows = N;
-
   extscalar = 0;
   extvector = 0;
   extarray = 0;
@@ -221,6 +217,12 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     modargs[1] = id_press;
     nh->modify_param(2,modargs);
   }
+  
+  // Setup size of global vector/arrays
+  size_vector = 9;
+  size_array_cols = 4;
+  size_array_rows = N;
+
 }
 
 /* ---------------------------------------------------------------------- */
