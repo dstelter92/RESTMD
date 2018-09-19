@@ -1023,10 +1023,9 @@ void FixStmd::MAIN(int istep, double sampledE)
 
       // Production run: Hist Output STMD
       if ((o == 0) && (comm->me == 0)) {
-      fprintf(fp_whpnm,"### STMD Step=%d: bin E phist ptot_hist\n",istep);
+      fprintf(fp_whpnm,"### STMD Step=%d: bin E phist tot_hist\n",istep);
         for (int i=0; i<N; i++)
-          fprintf(fp_whpnm,"%i %f %i %i %i %f %i %i %f\n", i, (i*bin)+Emin,\
-              Hist[i],PROH[i],Htot[i],Y2[i],CountH,CountPH,f);
+          fprintf(fp_whpnm,"%i %f %i %i\n", i, (i*bin)+Emin,PROH[i],Htot[i]);
         fprintf(fp_whpnm,"\n\n");
       }
     } // if ((m == 0)
