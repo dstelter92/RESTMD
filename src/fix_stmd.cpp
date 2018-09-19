@@ -158,8 +158,12 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
     strcpy(dir_output,"./");
   
   // Init arrays
-  Y1 = Y2 = Prob = NULL;
+  Y2 = Prob = NULL;
   Hist = Htot = PROH = NULL;
+
+  // STMD_specific flags
+  hist_flag = 0; // 0=read from restart, 1=reset
+  freset_flag = 0; // 0=read from restart, 1=reset
 
   // Setup communication flags
   stmd_logfile = stmd_debug = stmd_screen = 0;
@@ -168,6 +172,7 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 
   // Init file pointers
   fp_wtnm = fp_whnm = fp_whpnm = fp_orest = NULL;
+
   
   // Energy bin setup
   BinMin = round(Emin / bin);
@@ -229,7 +234,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 
 FixStmd::~FixStmd()
 {
-  memory->destroy(Y1);
   memory->destroy(Y2);
   memory->destroy(Hist);
   memory->destroy(Htot);
@@ -281,6 +285,7 @@ void FixStmd::init()
       strcpy(filename_whnm,filename);
       fp_whnm  = fopen(filename,"w");
     }
+    /*
     if (!fp_whpnm) {
       strcpy(filename,dir_output);
       strcat(filename,"/WHP.");
@@ -289,6 +294,7 @@ void FixStmd::init()
       strcpy(filename_whpnm,filename);
       fp_whpnm = fopen(filename,"w");
     }
+    */
     if ((!fp_orest) && (!OREST)) {
       strcpy(filename,dir_output);
       strcat(filename,"/oREST.");
@@ -308,9 +314,9 @@ void FixStmd::init()
       fp_orest = fopen(filename,"r");
       if (!fp_orest) {
         if (stmd_logfile)
-          fprintf(logfile,"Restart file: oREST.%s.d is empty\n",walker);
+          fprintf(logfile,"Restart file: %soREST.%s.d is empty\n",dir_output,walker);
         if (stmd_screen)
-          fprintf(screen,"Restart file: oREST.%s.d is empty\n",walker);
+          fprintf(screen,"Restart file: %soREST.%s.d is empty\n",dir_output,walker);
         error->one(FLERR,"STMD: Restart file does not exist\n");
       }
     }
@@ -393,7 +399,6 @@ void FixStmd::init()
   CTmin = (TL + CutTmin) / ST;
   CTmax = (TH - CutTmax) / ST;
 
-  memory->grow(Y1, N, "FixSTMD:Y1");
   memory->grow(Y2, N, "FixSTMD:Y2");
   memory->grow(Hist, N, "FixSTMD:Hist");
   memory->grow(Htot, N, "FixSTMD:Htot");
@@ -401,7 +406,6 @@ void FixStmd::init()
   memory->grow(Prob, N, "FixSTMD:Prob");
 
   for (int i=0; i<N; i++) {
-    Y1[i] = T2;
     Y2[i] = T2;
     Hist[i] = 0;
     Htot[i] = 0;
@@ -461,9 +465,9 @@ void FixStmd::init()
       file.seekg(0,file.beg);
       if (sz < (nsize*sizeof(double))) {
         if (stmd_logfile)
-          fprintf(logfile,"Restart file: oREST.%s.d is an invalid format\n",walker);
+          fprintf(logfile,"Restart file: %soREST.%s.d is an invalid format\n",dir_output,walker);
         if (stmd_screen)
-          fprintf(screen,"Restart file: oREST.%s.d is an invalid format\n",walker);
+          fprintf(screen,"Restart file: %soREST.%s.d is an invalid format\n",dir_output,walker);
         error->one(FLERR,"STMD: Restart file is empty/invalid\n");
       }
 
@@ -471,7 +475,8 @@ void FixStmd::init()
         file >> list[i];
 
       STG = static_cast<int> (list[k++]);
-      f = list[k++];
+      if (!freset_flag)
+        f = list[k++];
       CountH = static_cast<int> (list[k++]);
       SWf = static_cast<int> (list[k++]);
       SWfold = static_cast<int> (list[k++]);
@@ -490,12 +495,15 @@ void FixStmd::init()
         Y2[i] = list[k++];
       for (int i=0; i<N; i++)
         Htot[i] = list[k++];
-      for (int i=0; i<N; i++)
-        PROH[i] = list[k++];
+      if (!hist_flag) {
+        for (int i=0; i<N; i++)
+          PROH[i] = list[k++];
+      }
 
       memory->destroy(list);
     }
-    df = log(f) * 0.5 / bin;
+    if (!freset_flag)
+      df = log(f) * 0.5 / bin;
     OREST = 0;
   }
 }
@@ -951,9 +959,9 @@ void FixStmd::MAIN(int istep, double sampledE)
   // Hist Output
   int o = istep % RSTFRQ;
   if ((o == 0) && (comm->me == 0)) {
-    fprintf(fp_whnm,"### STMD Step=%d: bin E hist tot_hist\n",istep);
+    fprintf(fp_whnm,"### STMD Step=%d: bin E hist thist phist\n",istep);
     for (int i=0; i<N; i++) 
-      fprintf(fp_whnm,"%i %f %i %i\n",i,(i*bin)+Emin,Hist[i],Htot[i]);
+      fprintf(fp_whnm,"%i %f %i %i %i\n",i,(i*bin)+Emin,Hist[i],Htot[i],PROH[i]);
     fprintf(fp_whnm,"\n\n");
   }
   
@@ -1021,6 +1029,7 @@ void FixStmd::MAIN(int istep, double sampledE)
       // Check stage 3
       if (f <= finFval) STG = 4;
 
+      /*
       // Production run: Hist Output STMD
       if ((o == 0) && (comm->me == 0)) {
       fprintf(fp_whpnm,"### STMD Step=%d: bin E phist tot_hist\n",istep);
@@ -1028,6 +1037,7 @@ void FixStmd::MAIN(int istep, double sampledE)
           fprintf(fp_whpnm,"%i %f %i %i\n", i, (i*bin)+Emin,PROH[i],Htot[i]);
         fprintf(fp_whpnm,"\n\n");
       }
+      */
     } // if ((m == 0)
   } // if (STG >= 3)
 
@@ -1203,18 +1213,37 @@ double FixStmd::compute_array(int i, int j)
 }
 
 /* ---------------------------------------------------------------------- */
-/* --- Trigger reinitialization of key arrays after modify_fix called --- */
+/*     Enable control to reset things in restart file via fix_modify      */
 /* ---------------------------------------------------------------------- */
 
-void FixStmd::modify_fix(int which, double *values, char *notused)
+int FixStmd::modify_param(int narg, char **arg)
 {
-  // Sets a specified variable to the input value(s)
-  if      (which == 0) BinMin = static_cast<int>(values[0] + 0.5);
-  else if (which == 1) BinMax = static_cast<int>(values[0] + 0.5);
-  else if (which == 2) bin    = static_cast<int>(values[0] + 0.5);
-  else if (which == 3) {
-    for (int i=0; i<N; i++) Y2[i] = values[i];
+  // Reset production histogram to 0
+  if (strcmp(arg[0],"hist_reset") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal fix_modify command");
+
+    if (strcmp(arg[1],"yes") == 0)
+      hist_flag = 1;
+    else
+      error->all(FLERR,"Illegal fix_modify command");
+    return 2;
   }
+  
+  // Reset dfvalue, must be >=0. (=0 means Ts does not update)
+  // df will take value from LAMMPS input, STG is NOT reset
+  else if (strcmp(arg[0],"dfval") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal fix_modify command");
+    if (strcmp(arg[1],"yes") == 0)
+      freset_flag = 1;
+    else
+      error->all(FLERR,"Illegal fix_modify command");
+
+    f = exp(df * 2 * bin);
+    return 2;
+  }
+
+  return 0;
+
 }
 
 /* ---------------------------------------------------------------------- */

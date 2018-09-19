@@ -41,7 +41,7 @@ class FixStmd : public Fix {
   double compute_scalar();
   double compute_vector(int);
   double compute_array(int, int);
-  void modify_fix(int, double *, char *);
+  int modify_param(int, char **);
   void write_orest();
   void write_temperature();
 
@@ -68,6 +68,7 @@ class FixStmd : public Fix {
   int SWf,SWchk,SWfold;     // histogram flatness checks
   int curbin;               // current sampled bin
 
+  int hist_flag, freset_flag;
   int stmd_logfile,stmd_debug,stmd_screen;
   int pe_compute_id;
   double pressref;
@@ -92,7 +93,7 @@ class FixStmd : public Fix {
   char * id_pe;
   FILE * fp_wtnm, * fp_whnm, * fp_whpnm, * fp_orest;
 
-  double * Y1, * Prob;
+  double * Prob;
   int * Hist, * Htot, * PROH;
 
   void dig();               // Translation of stmd.f::stmddig()
