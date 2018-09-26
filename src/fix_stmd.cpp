@@ -179,6 +179,12 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   BinMax = round(Emax / bin);
   N = BinMax - BinMin + 1;
 
+  if (N < 0)
+    error->all(FLERR,"Emin > Emax, negative number of bins");
+  if (N < 1)
+    error->all(FLERR,"Invalid energy range");
+
+
   // ceate new compute temp style
   // id = fix-ID + temp
   n = strlen(id) + 6;
