@@ -573,8 +573,10 @@ void FixStmd::post_force(int vflag)
   sampledE = tmp_pe + (pressref*tmp_vol/(force->nktv2p));
 
   // Check if sampledE is outside of bounds before continuing
-  if ((sampledE < Emin) || (sampledE > Emax))
-    error->all(FLERR,"STMD: Sampled energy out of range\n");
+  if ((sampledE < Emin) || (sampledE > Emax)) {
+    fprintf(screen,"STMD: Sampled energy %f out of range\n", sampledE);
+    error->all(FLERR,"Energy out of range\n");
+  }
 
   // Master rank will compute scaling factor and then Bcast to world
   MAIN(update->ntimestep,sampledE);
