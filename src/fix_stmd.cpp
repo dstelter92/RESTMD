@@ -66,9 +66,6 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
 {
   if (narg < 15 || narg > 16) error->all(FLERR,"Illegal fix stmd command");
 
-  // DEBUG FLAG
-  //stmd_debug = 1;
-
   scalar_flag = 1;
   vector_flag = 1;
   array_flag = 1;
@@ -233,6 +230,9 @@ FixStmd::FixStmd(LAMMPS *lmp, int narg, char **arg) :
   size_vector = 9;
   size_array_cols = 4;
   size_array_rows = N;
+
+  // DEBUG FLAG
+  //stmd_debug = 1;
 
 }
 
@@ -574,7 +574,10 @@ void FixStmd::post_force(int vflag)
 
   // Check if sampledE is outside of bounds before continuing
   if ((sampledE < Emin) || (sampledE > Emax)) {
-    fprintf(screen,"STMD: Sampled energy %f out of range\n", sampledE);
+    if (stmd_screen && (comm->me == 0))
+      fprintf(screen,"STMD: Sampled energy %f\n", sampledE);
+    if (stmd_logfile && (comm->me == 0))
+      fprintf(logfile,"STMD: Sampled energy %f\n", sampledE);
     error->all(FLERR,"Energy out of range\n");
   }
 
@@ -639,6 +642,7 @@ void FixStmd::write_temperature()
     for (int i=0; i<N; i++) 
       fprintf(fp_wtnm,"%i %f %f\n", i,(i*bin)+Emin,Y2[i]*ST);
     fprintf(fp_wtnm,"\n\n");
+    fflush(fp_wtnm);
   }
 }
 
@@ -750,6 +754,8 @@ void FixStmd::write_orest()
     }
     fprintf(fp_orest,"\n");
 
+    //fflush(fp_orest);
+    fclose(fp_orest); //close instead of flush?
     memory->destroy(list);
   }
 }
